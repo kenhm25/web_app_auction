@@ -1,0 +1,14 @@
+{% extends 'auction/base.html' %}
+
+{% block title %}出價{% endblock %}
+
+
+{% block content %}
+    <h1>出價 for {{ product.title }}</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">我要出價！</button>
+    </form>
+{% endblock %}
+

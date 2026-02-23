@@ -1,0 +1,31 @@
+{% extends 'auction/base.html' %}
+
+{% block title %}我的商品{% endblock %}
+
+{% block content %}
+<h1>我的商品</h1>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-around;">
+    {% for product in object_list %}
+    <div style="border: 1px solid #ccc; border-radius: 8px; margin: 10px; padding: 15px; width: 300px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center;">
+        <!-- 商品圖片 -->
+        <div style="height: 200px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+            {% if product.image_url %}
+                <img src="{{ product.image_url }}" alt="{{ product.title }}" style="max-width: 100%; max-height: 100%;">
+            {% else %}
+                <img src="default-image-url.jpg" alt="Default Image" style="max-width: 100%; max-height: 100%;">
+            {% endif %}
+        </div>
+        <!-- 商品標題和價格 -->
+        <h3><a href="{% url 'product_detail' product.id %}" style="text-decoration: none; color: #f3f3f3;">{{ product.title }}</a></h3>
+        <p>起標價: NT$ {{ product.starting_bid|floatformat:"0" }}</p>
+        <!-- 刪除按鈕 -->
+        <form action="{% url 'delete_product' product.id %}" method="post" style="display: inline;">
+            {% csrf_token %}
+            <input type="submit" value="刪除" onclick="return confirm('確定要刪除此商品嗎？');">
+        </form>
+    </div>
+    {% empty %}
+    <p>目前沒有商品。</p>
+    {% endfor %}
+</div>
+{% endblock %}

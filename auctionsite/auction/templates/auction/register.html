@@ -1,0 +1,14 @@
+{% extends 'auction/base.html' %}
+
+{% block title %}註冊頁面{% endblock %}
+
+
+{% block content %}
+    <h1>註冊</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">註冊</button>
+    </form>
+{% endblock %}
+
