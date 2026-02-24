@@ -1,8 +1,10 @@
 from django.urls import path
 from . import views
 from .views import add_product, add_bid, register, user_login, user_logout, UserProductList, delete_product, search_results
+from .api_views import health
 
 urlpatterns = [
+    path("api/health/", health),
     path('', views.product_list, name='product_list'),
     path('products/<int:id>/', views.product_detail, name='product_detail'),
     path('add-product/', add_product, name='add_product'),

@@ -34,21 +34,41 @@ def add_product(request):
         form = ProductForm()
     return render(request, 'auction/add_product.html', {'form': form})
 
+from django.db import transaction
+from django.db.models import Max
+
 @login_required
 def add_bid(request, product_id):
-    product = get_object_or_404(Product, id=product_id)
     if request.method == 'POST':
         form = BidForm(request.POST)
         if form.is_valid():
-            bid = form.save(commit=False)
-            bid.product = product
-            bid.bidder = request.user
-            bid.save()
-            return redirect('product_detail', id=product.id)
+            bid_amount = form.cleaned_data['bid_amount']
+
+            with transaction.atomic():
+                # 鎖住這筆 product
+                product = Product.objects.select_for_update().get(id=product_id)
+
+                highest_bid = Bid.objects.filter(product=product).aggregate(Max('bid_amount'))['bid_amount__max']
+
+                # 如果沒有出價過，最高價用 starting_bid
+                current_price = highest_bid if highest_bid else product.starting_bid
+
+                if bid_amount <= current_price:
+                    form.add_error('bid_amount', 'Bid must be higher than current price')
+                else:
+                    Bid.objects.create(
+                        product=product,
+                        bidder=request.user,
+                        bid_amount=bid_amount
+                    )
+                    return redirect('product_detail', id=product.id)
+
     else:
         form = BidForm()
-    return render(request, 'auction/add_bid.html', {'form': form, 'product': product})
 
+    product = get_object_or_404(Product, id=product_id)
+    return render(request, 'auction/add_bid.html', {'form': form, 'product': product})
+    
 from .forms import CustomUserCreationForm
 def register(request):
     if request.method == 'POST':
