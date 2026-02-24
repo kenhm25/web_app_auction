@@ -63,7 +63,7 @@ cd web_app_auction/auctionsite
 2. Create and activate virtual environment
 macOS / Linux
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 ```
 
@@ -82,12 +82,12 @@ pip install -r requirements.txt
 4. Apply database migrations
 
 ```bash
-python manage.py migrate
+python3 manage.py migrate
 ```
 5. Run development server
 
 ```bash
-python manage.py runserver
+python3 manage.py runserver
 ```
 Open your browser and visit:
 
