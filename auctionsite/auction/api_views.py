@@ -3,9 +3,10 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Product
 from .serializers import ProductSerializer
-
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 class ProductListCreateView(APIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get(self, request):
         products = Product.objects.all()
