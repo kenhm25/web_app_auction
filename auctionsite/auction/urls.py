@@ -1,10 +1,10 @@
 from django.urls import path
 from . import views
 from .views import add_product, add_bid, register, user_login, user_logout, UserProductList, delete_product, search_results
-from .api_views import health
+from .api_views import ProductListCreateView
 
 urlpatterns = [
-    path("api/health/", health),
+    path("api/products/", ProductListCreateView.as_view()),
     path('', views.product_list, name='product_list'),
     path('products/<int:id>/', views.product_detail, name='product_detail'),
     path('add-product/', add_product, name='add_product'),
