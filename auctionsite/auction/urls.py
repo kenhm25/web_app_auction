@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 from .views import add_product, add_bid, register, user_login, user_logout, UserProductList, delete_product, search_results
-from .api_views import ProductListCreateView
+from .api_views import ProductListCreateView, BidCreateView
 
 urlpatterns = [
     path("api/products/", ProductListCreateView.as_view()),
@@ -15,4 +15,5 @@ urlpatterns = [
     path('myproducts/', UserProductList.as_view(), name='myproducts'),
     path('delete_product/<int:pk>/', delete_product, name='delete_product'),
     path('search/', search_results, name='search_results'),
+    path("api/products/<int:product_id>/bids/", BidCreateView.as_view()),
 ]
