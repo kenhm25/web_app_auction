@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from decimal import Decimal
 
 # Create your models here.
 class Product(models.Model):
@@ -7,8 +8,17 @@ class Product(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
     starting_bid = models.DecimalField(max_digits=10, decimal_places=2)
+    current_highest_bid = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
+    )
     image_url = models.URLField(blank=True)
     location = models.CharField(max_length=100)
+
+    def save(self, *args, **kwargs):
+        if not self.current_highest_bid:
+            self.current_highest_bid = self.starting_bid
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title
