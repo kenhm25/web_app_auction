@@ -10,5 +10,21 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  web:
+    build: .
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    command: >
+      sh -c "
+      python manage.py migrate &&
+      gunicorn auctionsite.wsgi:application --bind 0.0.0.0:8000 --workers 3
+      "
+    volumes:
+      - .:/app
+
 volumes:
   pgdata:

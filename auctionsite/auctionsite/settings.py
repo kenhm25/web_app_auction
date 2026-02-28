@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-g308m_*s@y*@s4ndgfq%x-_q4dgnqn%m5#_c%ejr-mbdp_wtd+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
 AUTH_USER_MODEL = 'auction.CustomUser'
 
@@ -80,18 +80,16 @@ WSGI_APPLICATION = 'auctionsite.wsgi.application'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 import os
-
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": os.environ.get("POSTGRES_DB", "auction"),
         "USER": os.environ.get("POSTGRES_USER", "auction"),
         "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "auction"),
-        "HOST": os.environ.get("POSTGRES_HOST", "127.0.0.1"),
-        "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+        "HOST": os.environ.get("DB_HOST", "db"),
+        "PORT": os.environ.get("DB_PORT", "5432"),
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
@@ -134,11 +132,23 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+from datetime import timedelta
+
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
-    ],
-    "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.AllowAny",
-    ],
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    ),
 }
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+}
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+]

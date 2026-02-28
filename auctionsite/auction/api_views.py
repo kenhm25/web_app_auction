@@ -35,7 +35,10 @@ class BidCreateView(APIView):
         bid_amount = serializer.validated_data["bid_amount"]
 
         with transaction.atomic():
-            product = Product.objects.select_for_update().get(id=product_id)
+            product = get_object_or_404(
+                        Product.objects.select_for_update(),
+                        id=product_id
+                    )
             
             if bid_amount <= product.current_highest_bid:
                 return Response(

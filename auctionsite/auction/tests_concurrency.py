@@ -7,6 +7,7 @@ from django.db import close_old_connections
 
 from rest_framework.test import APIClient
 
+from rest_framework_simplejwt.tokens import RefreshToken
 from .models import Product, Bid
 
 User = get_user_model()
@@ -33,15 +34,20 @@ class BidRaceConditionTest(TransactionTestCase):
 
         self.url = f"/api/products/{self.product.id}/bids/"
 
-    def _post_bid_in_thread(self, username, password, bid_amount, barrier, results, idx):
+    def _get_access_token(self, user):
+        refresh = RefreshToken.for_user(user)
+        return str(refresh.access_token)
+    
+    def _post_bid_in_thread(self, user, bid_amount, barrier, results, idx):
         """
         每個 thread 用自己的 APIClient + 自己的 DB connection。
         """
         close_old_connections()  # 重要：thread 內使用獨立 DB connection
 
         client = APIClient()
-        ok = client.login(username=username, password=password)
-        assert ok, "login failed in test thread"
+        # 🔥 設定 JWT header
+        token = self._get_access_token(user)
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
 
         barrier.wait()  # 同時起跑
 
@@ -61,11 +67,11 @@ class BidRaceConditionTest(TransactionTestCase):
 
         t1 = threading.Thread(
             target=self._post_bid_in_thread,
-            args=("b1", "pass12345", Decimal("200.00"), barrier, results, 0),
+            args=(self.b1, Decimal("200.00"), barrier, results, 0),
         )
         t2 = threading.Thread(
             target=self._post_bid_in_thread,
-            args=("b2", "pass12345", Decimal("150.00"), barrier, results, 1),
+            args=(self.b2, Decimal("150.00"), barrier, results, 1),
         )
 
         t1.start()
