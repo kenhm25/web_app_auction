@@ -171,23 +171,27 @@ docker compose up -d
 docker compose exec web python manage.py migrate
 ```
 
-### 5. (Optional) Create superuser
+### 5. Test
+
+```bash
+docker compose exec web python manage.py test
+```
+
+### 6. (Optional) Create superuser
 
 ```bash
 docker compose exec web python manage.py createsuperuser
 ```
 
-### 6. Stop services
+### 7. Stop services
 
 ```bash
 docker compose down
 ```
 
 API available at:
-
-```
 http://localhost:8000/
-```
+
 ---
 
 ## Engineering Concepts Demonstrated
