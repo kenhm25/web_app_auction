@@ -1,75 +1,63 @@
 # Auction Web API (Django REST Framework)
 
-## Overview
-
 A production-oriented RESTful auction backend system built with Django and Django REST Framework.
 
-This project focuses on backend architecture, transaction safety, authentication design, and containerized deployment.  
+This project focuses on authentication design, transactional integrity, concurrency control, and containerized deployment.  
 It simulates a real-world auction platform with concurrency-safe bidding logic and production-ready configuration.
 
-GitHub:  
-https://github.com/kenhm25/web_app_auction
+---
 
+# 🚀 Features Overview
+
+## 1️⃣ Authentication (JWT-Based, Stateless)
+
+- User registration (`POST /api/register/`)
+- Login with JWT (`POST /api/token/`)
+- Token refresh (`POST /api/token/refresh/`)
+- Authenticated user profile (`GET /api/me/`)
+- Custom token response including user info
+- Password hashing via `create_user()`
+- Permission enforcement using `IsAuthenticated`
+
+### Concepts Demonstrated
+
+- Stateless authentication
+- Token-based identity verification
+- DRF authentication pipeline
+- Secure password handling
+- Request lifecycle (`request.user` population)
 
 ---
 
-## Key Highlights
-
-- RESTful API architecture using Django REST Framework
-- JWT-based authentication (stateless)
-- Concurrency-safe bidding system using `transaction.atomic()` and `select_for_update()`
-- PostgreSQL relational database
-- Dockerized deployment
-- Gunicorn production WSGI server
-- API-level automated testing
-- Clean separation of concerns (Model / Serializer / View)
-
-
----
-
-## Tech Stack
-
-- Python
-- Django
-- Django REST Framework
-- PostgreSQL
-- JWT (SimpleJWT)
-- Gunicorn
-- Docker
-- Django ORM
-- Transaction management
-- APITestCase (API testing)
-
-
----
-
-## Core Features
-
-### 1. Product API
+## 2️⃣ Product API
 
 - Authenticated users can create products
 - Public users can view product list
 - Seller automatically assigned from `request.user`
-- Validation handled via `ModelSerializer`
+- Validation via `ModelSerializer`
+- Controlled write access via permission classes
 
-### 2. Concurrency-Safe Bidding System
+---
 
-- Only authenticated users can place bids
+## 3️⃣ Concurrency-Safe Bidding System
+
+- Only authenticated users can bid
 - Bid must be strictly greater than current highest bid
-- Row-level locking with `select_for_update()`
-- Atomic transaction prevents race conditions
-- Updates product’s `current_highest_bid` within a single transaction
+- `transaction.atomic()` for transactional safety
+- `select_for_update()` for row-level locking
+- Atomic update of `current_highest_bid`
+- Multi-threaded concurrency test simulation
 
-This design ensures consistent bidding state under concurrent requests.
+### Engineering Concepts
 
-### 3. JWT Authentication
+- Transaction isolation
+- Pessimistic locking
+- Data consistency guarantees
+- Race condition prevention
 
-- Stateless authentication using JSON Web Tokens
-- Token issuance via login endpoint
-- Protected endpoints require Bearer token
-- Designed for scalable backend services
+---
 
-### 4. Relational Database Design
+## 4️⃣ Relational Database Design
 
 Entities:
 
@@ -85,46 +73,65 @@ Entities:
 
 Design considerations:
 
-- Referential integrity enforced via ForeignKey
-- DecimalField for financial precision
-- Controlled write operations via permission classes
-- Optimized read/write operations using ORM
-
-
-### 5. Automated API Testing
-
-Implemented API-level tests covering:
-
-- Unauthenticated user cannot bid
-- Bid lower than current price is rejected
-- Valid bid succeeds and creates record
-- Concurrency behavior validation
-
-Ensures business logic correctness and transactional integrity.
-
+- Referential integrity via ForeignKey
+- Decimal precision for financial values
+- ORM-based abstraction
+- Controlled mutation through API layer
 
 ---
 
-## Architecture Overview
+## 5️⃣ API-Level Automated Testing
+
+Implemented tests covering:
+
+- Unauthenticated user restrictions
+- Business rule validation
+- Bid amount enforcement
+- Concurrency behavior validation
+- HTTP status checks
+- Data integrity verification
+
+Includes:
+
+- `APITestCase`
+- Transaction-based concurrency tests
+- Multi-threaded race condition validation
+
+---
+
+## 6️⃣ Production-Oriented Deployment
+
+- PostgreSQL containerized service
+- Django app container
+- Gunicorn production WSGI server
+- Docker Compose orchestration
+- Persistent database volume
+
+---
+
+# 🏗 Architecture Overview
 
 ```
 Client
    ↓
-Django REST API
+URL Routing
    ↓
-Service Layer (APIView + Serializer)
+APIView
    ↓
-PostgreSQL
+Authentication (JWT)
+   ↓
+Permission Check
+   ↓
+Serializer Validation
+   ↓
+Database Transaction
+   ↓
+Response
 ```
-
-- Gunicorn serves the Django application
-- Docker encapsulates the runtime environment
-- PostgreSQL runs as a containerized service
-
 
 ---
 
-## Project Structure
+# 🧱 Project Structure
 
 ```
 auction/
@@ -137,63 +144,147 @@ auction/
 
 - `models.py` → Database schema
 - `serializers.py` → Validation & transformation layer
-- `api_views.py` → API endpoint logic
+- `api_views.py` → Endpoint logic
 - `tests.py` → API behavior verification
-- `tests_concurrency.py` → Race condition validation
-
+- `tests_concurrency.py` → Race condition testing
 
 ---
-## Running with Docker (Recommended)
 
-### 1. Clone repository
+# 🐳 Running with Docker (Recommended)
+
+## 1. Clone repository
 
 ```bash
 git clone https://github.com/kenhm25/web_app_auction
 cd web_app_auction/auctionsite
 ```
 
-### 2. Build images
+---
+
+## 2. Build containers
 
 ```bash
 docker compose build
 ```
 
-### 3. Start services (detached mode)
+---
+
+## 3. Start services
 
 ```bash
 docker compose up -d
 ```
 
-### 4. Apply database migrations
+---
+
+## 4. Apply migrations
 
 ```bash
 docker compose exec web python manage.py migrate
 ```
 
-### 5. Test
+---
+
+## 5. Run tests
 
 ```bash
 docker compose exec web python manage.py test
 ```
 
-### 6. (Optional) Create superuser
+---
+
+## 6. Create superuser (optional)
 
 ```bash
 docker compose exec web python manage.py createsuperuser
 ```
 
-### 7. Stop services
+---
+
+## 7. Stop services
 
 ```bash
 docker compose down
 ```
 
-API available at:
+---
+
+API will be available at:
+
+```
 http://localhost:8000/
+```
 
 ---
 
-## Engineering Concepts Demonstrated
+# 🧪 Example API Flow (Manual Testing)
+
+## 1️⃣ Register
+
+```bash
+curl -X POST http://localhost:8000/api/register/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "test_user",
+    "email": "test@test.com",
+    "password": "strongpassword123"
+  }'
+```
+
+---
+
+## 2️⃣ Login
+
+```bash
+curl -X POST http://localhost:8000/api/token/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "test_user",
+    "password": "strongpassword123"
+  }'
+```
+
+---
+
+## 3️⃣ Access Protected Endpoint
+
+```bash
+curl http://localhost:8000/api/me/ \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+---
+
+## 4️⃣ Create Product
+
+```bash
+curl -X POST http://localhost:8000/api/products/ \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "MacBook Pro",
+    "description": "M1 16GB",
+    "starting_bid": "20000.00",
+    "location": "Taipei"
+  }'
+```
+
+---
+
+## 5️⃣ Place Bid
+
+```bash
+curl -X POST http://localhost:8000/api/products/1/bids/ \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "bid_amount": "25000.00"
+  }'
+```
+
+---
+
+# 🔐 Engineering Concepts Demonstrated
 
 - Stateless authentication (JWT)
 - Transaction isolation
@@ -203,34 +294,32 @@ http://localhost:8000/
 - Containerized deployment
 - Production WSGI configuration
 - API-level testing discipline
-- Backend service design
-
+- Backend service architecture
 
 ---
 
-## Future Improvements
+# 📈 Future Improvements
 
 - Redis caching
 - Rate limiting
 - Background task queue (Celery)
 - CI/CD pipeline
-- Cloud deployment (AWS/GCP)
+- Cloud deployment (AWS / GCP)
 - Load testing
-
 
 ---
 
-## Why This Project Matters
+# 🎯 Why This Project Matters
 
 This project demonstrates production-level backend engineering practices rather than tutorial-style CRUD development.
 
 It reflects understanding of:
 
-- Secure authentication
-- Concurrency handling
-- Data integrity guarantees
-- Scalable backend architecture
-- Containerized deployment strategy
-- Real-world service design patterns
+- Secure authentication systems
+- Concurrency handling strategies
+- Transactional integrity
+- Clean API architecture
+- Containerized deployment
+- Real-world backend service design
 
-It is designed to represent practical backend engineering skills suitable for entry-level backend roles.
+Designed to represent practical backend engineering skills suitable for entry-level backend roles.
