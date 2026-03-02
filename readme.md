@@ -131,7 +131,6 @@ auction/
 ├── models.py
 ├── serializers.py
 ├── api_views.py
-├── permissions.py
 ├── tests.py
 ├── tests_concurrency.py
 ```

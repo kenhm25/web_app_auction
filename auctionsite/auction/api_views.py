@@ -1,12 +1,13 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, generics
 from .models import Product, Bid
-from .serializers import ProductSerializer, BidCreateSerializer
-from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
+from .serializers import ProductSerializer, BidCreateSerializer, RegisterSerializer, UserSerializer
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
-from django.db.models import Max
 from django.db import transaction
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializers import CustomTokenObtainPairSerializer
 
 class ProductListCreateView(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
@@ -60,3 +61,19 @@ class BidCreateView(APIView):
             {"id": bid.id, "bid_amount": str(bid.bid_amount)},
             status=201,
         )
+
+class RegisterAPIView(generics.CreateAPIView):
+    serializer_class = RegisterSerializer
+    permission_classes = [AllowAny]
+
+class MeAPIView(generics.RetrieveAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+    
+
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
