@@ -12,6 +12,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "title",
             "description",
             "starting_bid",
+            "current_highest_bid",
             "image_url",
             "location",
         ]

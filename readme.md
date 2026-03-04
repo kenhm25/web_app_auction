@@ -99,7 +99,15 @@ Includes:
 
 ---
 
-## 6️⃣ Production-Oriented Deployment
+## 6️⃣ API Documentation (Swagger / OpenAPI)
+
+- Interactive API documentation
+- OpenAPI 3.0 schema generation
+- JWT-secured endpoint testing
+
+---
+
+## 7️⃣ Production-Oriented Deployment
 
 - PostgreSQL containerized service
 - Django app container
@@ -113,19 +121,21 @@ Includes:
 
 ```
 Client
-   ↓
+↓
 URL Routing
-   ↓
-APIView
-   ↓
-Authentication (JWT)
-   ↓
+↓
+Middleware
+↓
+Authentication
+↓
 Permission Check
-   ↓
+↓
+APIView / ViewSet
+↓
 Serializer Validation
-   ↓
-Database Transaction
-   ↓
+↓
+Database
+↓
 Response
 ```
 
@@ -147,6 +157,54 @@ auction/
 - `api_views.py` → Endpoint logic
 - `tests.py` → API behavior verification
 - `tests_concurrency.py` → Race condition testing
+
+---
+
+# 📘 API Documentation (Swagger / OpenAPI)
+
+Interactive API documentation is available via Swagger UI.
+
+Access:
+
+```
+http://localhost:8000/api/docs/
+```
+
+Raw OpenAPI schema:
+
+```
+http://localhost:8000/api/schema/
+```
+
+### Authentication
+
+Protected endpoints require a Bearer token.
+
+1. Obtain access token:
+
+```bash
+POST /api/token/
+```
+
+2. Click **Authorize** in Swagger UI  
+3. Enter:
+
+```
+Bearer <your_access_token>
+```
+
+### Example: Place a Bid
+
+```
+POST /api/products/{product_id}/bids/
+```
+
+```json
+{
+  "bid_amount": "1500.00"
+}
+```
+
 
 ---
 
@@ -294,7 +352,8 @@ curl -X POST http://localhost:8000/api/products/1/bids/ \
 - Containerized deployment
 - Production WSGI configuration
 - API-level testing discipline
-- Backend service architecture
+- Layered backend service architecture
+- Contract-driven API design
 
 ---
 
@@ -309,17 +368,3 @@ curl -X POST http://localhost:8000/api/products/1/bids/ \
 
 ---
 
-# 🎯 Why This Project Matters
-
-This project demonstrates production-level backend engineering practices rather than tutorial-style CRUD development.
-
-It reflects understanding of:
-
-- Secure authentication systems
-- Concurrency handling strategies
-- Transactional integrity
-- Clean API architecture
-- Containerized deployment
-- Real-world backend service design
-
-Designed to represent practical backend engineering skills suitable for entry-level backend roles.

@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import CustomTokenObtainPairSerializer
+from drf_spectacular.utils import extend_schema
 
 class ProductListCreateView(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
@@ -29,7 +30,11 @@ class ProductListCreateView(APIView):
 
 class BidCreateView(APIView):
     permission_classes = [IsAuthenticated]
-
+    @extend_schema(
+        request=BidCreateSerializer,
+        responses=BidCreateSerializer,
+    )
+    
     def post(self, request, product_id):
         serializer = BidCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
