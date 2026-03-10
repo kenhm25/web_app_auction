@@ -11,7 +11,11 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DB_HOST: db
     env_file:
       - .env
     ports:
@@ -28,7 +32,7 @@ services:
       "
 
     volumes:
-      - .:/app
+      - ./auctionsite:/app
 
 volumes:
   pgdata:

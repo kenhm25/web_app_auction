@@ -14,11 +14,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 # 先複製 requirements
-COPY requirements.txt .
+COPY auctionsite/requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 再複製整個專案
-COPY . .
+COPY auctionsite/ .
 
 EXPOSE 8000

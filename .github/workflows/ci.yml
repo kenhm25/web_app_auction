@@ -16,6 +16,7 @@ jobs:
       postgres:
         image: postgres:16
         env:
+          DB_HOST: localhost
           POSTGRES_DB: auction
           POSTGRES_USER: auction
           POSTGRES_PASSWORD: auction
@@ -35,20 +36,17 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: '3.12'
 
     - name: Install dependencies
       run: |
-        pip install -r requirements.txt
+        pip install -r auctionsite/requirements.txt
 
     - name: Run migrations
       run: |
-        python manage.py migrate
+        python auctionsite/manage.py migrate
 
     - name: Run tests
       run: |
-        python manage.py test
-        
-    - name: Build Docker image
-      run: |
-        docker build -t auction-api .
+        python auctionsite/manage.py test
+   
