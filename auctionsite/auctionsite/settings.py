@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-g308m_*s@y*@s4ndgfq%x-_q4dgnqn%m5#_c%ejr-mbdp_wtd+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+ALLOWED_HOSTS = ["*"]
 
 AUTH_USER_MODEL = 'auction.CustomUser'
 
