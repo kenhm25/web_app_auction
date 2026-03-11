@@ -374,6 +374,112 @@ This demonstrates how a backend API can be deployed in a scalable container orch
 
 ---
 
+# Deploying to Google Kubernetes Engine (GKE)
+
+This project can be deployed to **Google Kubernetes Engine (GKE)** using the CI/CD pipeline configured in GitHub Actions.
+
+The pipeline automatically:
+
+1. Builds the Docker image
+2. Pushes the image to Docker Hub
+3. Deploys the latest version to the Kubernetes cluster
+
+The only requirement is that the **GKE cluster already exists**.
+
+---
+
+## 1. Create a GKE Cluster
+
+Before deploying, create a Kubernetes cluster in GCP:
+
+```bash
+gcloud container clusters create auction-cluster \
+  --region asia-east1 \
+  --num-nodes 1
+```
+
+This command creates:
+
+- A Kubernetes control plane
+- A node pool with 1 VM node
+- Networking and load balancing infrastructure
+
+Cluster creation usually takes **3–5 minutes**.
+
+---
+
+## 2. Trigger Deployment via CI/CD
+
+Once the cluster is ready, simply push code to the `main` branch:
+
+```bash
+git push
+```
+
+The GitHub Actions pipeline will automatically:
+
+1. Run tests
+2. Build the Docker image
+3. Push the image to Docker Hub
+4. Deploy the application to GKE
+
+---
+
+## 3. Verify Deployment
+
+You can verify that the application is running using:
+
+```bash
+kubectl get pods
+kubectl get services
+kubectl get ingress
+```
+
+---
+
+## 4. Shut Down the Cluster (Cost Control)
+
+To avoid unnecessary cloud costs, delete the cluster when it is not in use:
+
+```bash
+gcloud container clusters delete auction-cluster \
+  --region asia-east1
+```
+
+Cluster deletion typically takes **5–15 minutes**.
+
+Deleting the cluster removes:
+
+- Kubernetes control plane
+- Node virtual machines
+- Load balancers
+- External IP addresses
+
+This stops all GCP infrastructure charges.
+
+---
+
+## 5. Redeploy Later
+
+To redeploy the application later:
+
+1. Recreate the cluster
+
+```bash
+gcloud container clusters create auction-cluster \
+  --region asia-east1 \
+  --num-nodes 1
+```
+
+2. Push new code
+
+```bash
+git push
+```
+
+The CI/CD pipeline will automatically deploy the application again.
+
+
 # Engineering Concepts Demonstrated
 
 - RESTful API design
