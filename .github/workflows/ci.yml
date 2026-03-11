@@ -71,15 +71,25 @@ jobs:
         docker push ${{ secrets.DOCKER_USERNAME }}/auction-api:latest
         docker push ${{ secrets.DOCKER_USERNAME }}/auction-api:${{ steps.vars.outputs.SHA }}
     
-    - name: Setup kubectl
-      uses: azure/setup-kubectl@v3
-    
-    - name: Configure kubeconfig
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Install GKE auth plugin
       run: |
-        mkdir -p ~/.kube
-        echo "${{ secrets.KUBE_CONFIG }}" > ~/.kube/config
-    
-    - name: Deploy to Kubernetes
+        gcloud components install gke-gcloud-auth-plugin
+
+    - name: Get GKE credentials
+      run: |
+        gcloud container clusters get-credentials auction-cluster \
+          --region asia-east1 \
+          --project auction-api-project
+
+    - name: Deploy to GKE
       run: |
         kubectl apply -f k8s/
         kubectl rollout restart deployment auction-api

@@ -21,7 +21,13 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 
+from django.http import JsonResponse
+
+def health(request):
+    return JsonResponse({"status": "ok"})
+
 urlpatterns = [
+    path("", health),
     path('admin/', admin.site.urls),
     path('api/', include('auction.urls')),
     path("api/token/", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
