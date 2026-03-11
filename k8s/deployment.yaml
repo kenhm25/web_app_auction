@@ -19,7 +19,8 @@ spec:
       containers:
         - name: django
           image: kenhm25/auction-api:latest
-
+          imagePullPolicy: Always
+          
           command:
             - sh
             - -c

@@ -92,4 +92,5 @@ jobs:
     - name: Deploy to GKE
       run: |
         kubectl apply -f k8s/
-        kubectl rollout restart deployment auction-api
+        kubectl set image deployment/auction-api django=${{ secrets.DOCKER_USERNAME }}/auction-api:${{ steps.vars.outputs.SHA }}
+        kubectl rollout status deployment/auction-api
