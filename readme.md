@@ -1,165 +1,195 @@
-# Auction Web API (Django REST Framework)
+# Auction Web API
 
-A production-oriented RESTful auction backend system built with Django and Django REST Framework.
+![CI](https://github.com/kenhm25/web_app_auction/actions/workflows/ci.yml/badge.svg)
 
-This project focuses on authentication design, transactional integrity, concurrency control, and containerized deployment.  
-It simulates a real-world auction platform with concurrency-safe bidding logic and production-ready configuration.
+A production-oriented auction backend system built with **Django REST Framework**.
 
----
+This project simulates a real-world auction platform and focuses on backend engineering concerns such as:
 
-# 🚀 Features Overview
+- concurrency-safe bidding logic
+- transactional integrity
+- RESTful API design
+- containerized deployment
+- CI/CD automation
+- Kubernetes-based cloud deployment
 
-## 1️⃣ Authentication (JWT-Based, Stateless)
-
-- User registration (`POST /api/register/`)
-- Login with JWT (`POST /api/token/`)
-- Token refresh (`POST /api/token/refresh/`)
-- Authenticated user profile (`GET /api/me/`)
-- Custom token response including user info
-- Password hashing via `create_user()`
-- Permission enforcement using `IsAuthenticated`
-
-### Concepts Demonstrated
-
-- Stateless authentication
-- Token-based identity verification
-- DRF authentication pipeline
-- Secure password handling
-- Request lifecycle (`request.user` population)
+The system is designed to demonstrate how a backend service can be built, tested, containerized, and deployed using modern backend engineering practices.
 
 ---
 
-## 2️⃣ Product API
+# Tech Stack
 
-- Authenticated users can create products
-- Public users can view product list
-- Seller automatically assigned from `request.user`
-- Validation via `ModelSerializer`
-- Controlled write access via permission classes
+**Backend**
 
----
+- Python
+- Django
+- Django REST Framework
 
-## 3️⃣ Concurrency-Safe Bidding System
+**Database**
 
-- Only authenticated users can bid
-- Bid must be strictly greater than current highest bid
-- `transaction.atomic()` for transactional safety
-- `select_for_update()` for row-level locking
-- Atomic update of `current_highest_bid`
-- Multi-threaded concurrency test simulation
+- PostgreSQL
+- Django ORM
 
-### Engineering Concepts
+**Infrastructure**
 
-- Transaction isolation
-- Pessimistic locking
-- Data consistency guarantees
-- Race condition prevention
+- Docker
+- Docker Compose
+- Kubernetes (GKE)
+- Gunicorn
 
----
+**DevOps**
 
-## 4️⃣ Relational Database Design
+- GitHub Actions
+- Docker Hub
+- CI/CD pipeline
+- Automated Kubernetes deployment
 
-Entities:
+**API Documentation**
 
-- **CustomUser** (extends `AbstractUser`)
-- **Product**
-  - seller (ForeignKey)
-  - starting_bid
-  - current_highest_bid
-- **Bid**
-  - product (ForeignKey)
-  - bidder (ForeignKey)
-  - bid_amount
-
-Design considerations:
-
-- Referential integrity via ForeignKey
-- Decimal precision for financial values
-- ORM-based abstraction
-- Controlled mutation through API layer
+- OpenAPI 3.0
+- Swagger UI
+- drf-spectacular
 
 ---
 
-## 5️⃣ API-Level Automated Testing
-
-Implemented tests covering:
-
-- Unauthenticated user restrictions
-- Business rule validation
-- Bid amount enforcement
-- Concurrency behavior validation
-- HTTP status checks
-- Data integrity verification
-
-Includes:
-
-- `APITestCase`
-- Transaction-based concurrency tests
-- Multi-threaded race condition validation
-
----
-
-## 6️⃣ API Documentation (Swagger / OpenAPI)
-
-- Interactive API documentation
-- OpenAPI 3.0 schema generation
-- JWT-secured endpoint testing
-
----
-
-## 7️⃣ Production-Oriented Deployment
-
-- PostgreSQL containerized service
-- Django app container
-- Gunicorn production WSGI server
-- Docker Compose orchestration
-- Persistent database volume
-
----
-
-# 🏗 Architecture Overview
-
+# System Architecture
 ```
 Client
-↓
-URL Routing
-↓
-Middleware
-↓
-Authentication
-↓
-Permission Check
-↓
-APIView / ViewSet
-↓
-Serializer Validation
-↓
-Database
-↓
-Response
+   │
+   ▼
+Django REST API
+   │
+   ├── Authentication Layer (JWT)
+   │
+   ├── Business Logic
+   │      └── Concurrency-safe bidding
+   │
+   ├── ORM
+   │
+   ▼
+PostgreSQL
 ```
+
+Production deployment
+
+```
+GitHub
+   │
+   ▼
+GitHub Actions (CI/CD)
+   │
+   ├── Run tests
+   ├── Build Docker image
+   ├── Push image to Docker Hub
+   │
+   ▼
+Google Kubernetes Engine
+   │
+   ├── Deployment
+   ├── Replica pods
+   └── Rolling updates
+```
+---
+
+# Features
+
+## Authentication (JWT)
+
+- User registration
+- Login with JWT
+- Token refresh
+- Authenticated user profile endpoint
+- Stateless authentication
+
+Key concepts demonstrated
+
+- token-based authentication
+- secure password hashing
+- request authentication pipeline
 
 ---
 
-# 🧱 Project Structure
+## Product API
 
-```
-auction/
-├── models.py
-├── serializers.py
-├── api_views.py
-├── tests.py
-├── tests_concurrency.py
-```
+RESTful endpoints for managing auction products.
 
-- `models.py` → Database schema
-- `serializers.py` → Validation & transformation layer
-- `api_views.py` → Endpoint logic
-- `tests.py` → API behavior verification
-- `tests_concurrency.py` → Race condition testing
+Features
+
+- authenticated product creation
+- public product listing
+- seller automatically derived from request user
+- serializer-based validation
+- permission-controlled write operations
 
 ---
 
+## Concurrency-Safe Bidding System
+
+The core engineering challenge in this project is handling concurrent bids safely.
+
+Features
+
+- only authenticated users can place bids
+- bid must be greater than current highest bid
+- atomic bid transactions
+- prevention of race conditions
+
+Implemented using
+
+- transaction.atomic()
+- select_for_update() row-level locking
+- transactional updates
+
+Concepts demonstrated
+
+- transaction isolation
+- pessimistic locking
+- race condition prevention
+- financial data consistency
+
+---
+
+## Relational Database Design
+
+
+### Main entities
+  - User  
+  - Product  
+  - Bid  
+
+### Relationships
+- User → Product (seller)  
+- User → Bid (bidder)  
+- Product → Bid  
+
+
+### Design considerations
+
+- referential integrity via foreign keys
+- precise financial values using Decimal
+- database consistency enforced through service layer
+
+---
+
+## API Testing
+
+Automated tests verify core business rules.
+
+Test coverage includes
+
+- authentication requirements
+- bid validation
+- HTTP response correctness
+- database state validation
+- concurrency behavior
+
+Testing tools
+
+- Django APITestCase
+- transaction-based tests
+- multi-thread race condition simulations
+
+---
 # 📘 API Documentation (Swagger / OpenAPI)
 
 Interactive API documentation is available via Swagger UI.
@@ -175,37 +205,6 @@ Raw OpenAPI schema:
 ```
 http://localhost:8000/api/schema/
 ```
-
-### Authentication
-
-Protected endpoints require a Bearer token.
-
-1. Obtain access token:
-
-```bash
-POST /api/token/
-```
-
-2. Click **Authorize** in Swagger UI  
-3. Enter:
-
-```
-Bearer <your_access_token>
-```
-
-### Example: Place a Bid
-
-```
-POST /api/products/{product_id}/bids/
-```
-
-```json
-{
-  "bid_amount": "1500.00"
-}
-```
-
-
 ---
 
 # 🐳 Running with Docker (Recommended)
@@ -214,7 +213,7 @@ POST /api/products/{product_id}/bids/
 
 ```bash
 git clone https://github.com/kenhm25/web_app_auction
-cd web_app_auction/auctionsite
+cd web_app_auction/
 ```
 
 ---
@@ -268,10 +267,8 @@ docker compose down
 ---
 
 API will be available at:
+http://localhost:8000/api/docs/
 
-```
-http://localhost:8000/
-```
 
 ---
 
@@ -342,29 +339,60 @@ curl -X POST http://localhost:8000/api/products/1/bids/ \
 
 ---
 
-# 🔐 Engineering Concepts Demonstrated
+# CI/CD Pipeline
 
-- Stateless authentication (JWT)
-- Transaction isolation
-- Row-level locking
-- Race condition prevention
-- Relational database modeling
-- Containerized deployment
-- Production WSGI configuration
-- API-level testing discipline
-- Layered backend service architecture
-- Contract-driven API design
+The project uses **GitHub Actions** to automate build, test, and deployment.
 
----
+Pipeline workflow
 
-# 📈 Future Improvements
+1. Run automated tests
+2. Build Docker image
+3. Push image to Docker Hub
+4. Deploy new version to Kubernetes
+5. Perform rolling update
 
-- Redis caching
-- Rate limiting
-- Background task queue (Celery)
-- CI/CD pipeline
-- Cloud deployment (AWS / GCP)
-- Load testing
+Deployment target
+
+- Google Kubernetes Engine (GKE)
+
+This setup simulates a simplified production deployment pipeline.
 
 ---
 
+# Kubernetes Deployment
+
+The application runs inside a Kubernetes cluster.
+
+Deployment configuration includes
+
+- multiple replicas
+- containerized Django service
+- Gunicorn production server
+- rolling updates during deployment
+
+This demonstrates how a backend API can be deployed in a scalable container orchestration environment.
+
+---
+
+# Engineering Concepts Demonstrated
+
+- RESTful API design
+- stateless authentication (JWT)
+- transactional database operations
+- race condition prevention
+- relational database modeling
+- containerized services
+- automated CI/CD pipelines
+- Kubernetes-based deployment
+- layered backend architecture
+
+---
+
+
+# Author
+
+Ken Hu
+
+GitHub
+
+https://github.com/kenhm25
