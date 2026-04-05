@@ -85,6 +85,7 @@ jobs:
 
     - name: Get GKE credentials
       run: |
+        gcloud info
         gcloud container clusters get-credentials auction-cluster \
           --region asia-east1 \
           --project ${{ secrets.GCP_PROJECT_ID }}
