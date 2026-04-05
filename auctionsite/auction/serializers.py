@@ -16,7 +16,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "image_url",
             "location",
         ]
-        read_only_fields = ["seller"]
+        read_only_fields = ["seller", "current_highest_bid"]
 
 class BidCreateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -33,7 +33,12 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "username", "email", "password"]
+        fields = [
+            "id", 
+            "username", 
+            "email", 
+            "password"
+        ]
         read_only_fields = ["id"]
 
     def create(self, validated_data):
@@ -47,7 +52,11 @@ class RegisterSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "username", "email"]
+        fields = [
+            "id", 
+            "username", 
+            "email"
+        ]
 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 

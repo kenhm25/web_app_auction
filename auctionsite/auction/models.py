@@ -15,7 +15,7 @@ class Product(models.Model):
     location = models.CharField(max_length=100)
 
     def save(self, *args, **kwargs):
-        if not self.current_highest_bid:
+        if self.current_highest_bid is None:
             self.current_highest_bid = self.starting_bid
         super().save(*args, **kwargs)
 
