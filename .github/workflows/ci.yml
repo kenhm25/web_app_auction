@@ -87,7 +87,7 @@ jobs:
       run: |
         gcloud container clusters get-credentials auction-cluster \
           --region asia-east1 \
-          --project auction-api-project
+          --project ${{ secrets.GCP_PROJECT_ID }}
 
     - name: Deploy to GKE
       run: |

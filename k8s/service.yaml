@@ -4,7 +4,7 @@ metadata:
   name: auction-api
 
 spec:
-  type: NodePort
+  type: ClusterIP
 
   selector:
     app: auction-api
@@ -12,4 +12,3 @@ spec:
   ports:
     - port: 80
       targetPort: 8000
-      nodePort: 30007
