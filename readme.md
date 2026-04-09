@@ -455,27 +455,53 @@ Deleting the cluster removes:
 - Load balancers
 - External IP addresses
 
-This stops all GCP infrastructure charges.
+This removes most GCP infrastructure costs (compute, load balancer, external IP).
+Persistent disks may still remain and should be manually checked and deleted if unused.
 
+---
+Then check the disks use:
+
+```bash
+gcloud compute disks list
+```
+
+If any disks still running:
+
+```bash
+gcloud compute disks delete DISK_NAME --zone ZONE
+```
 ---
 
 ## 5. Redeploy Later
 
 To redeploy the application later:
 
-1. Recreate the cluster
+1. Recreate the cluster with 50GB standard persistent disk (node disk).
 
 ```bash
 gcloud container clusters create auction-cluster \
   --region asia-east1 \
-  --num-nodes 1
+  --num-nodes 1 \
+  --disk-type pd-standard \
+  --disk-size 50
 ```
 
-2. Push new code
+> Note: This configures the node disk.
+Application data (PostgreSQL) uses separate persistent volumes.
+
+2. Ensure the CI/CD pipeline is configured with cluster credentials before triggering deployment.
+Alternatively, apply Kubernetes manifests manually:
 
 ```bash
 git push
 ```
+or
+
+```bash
+kubectl apply -f k8s/
+```
+ 
+
 
 The CI/CD pipeline will automatically deploy the application again.
 
