@@ -15,7 +15,7 @@ User = get_user_model()
 
 class BidRaceConditionTest(TransactionTestCase):
 
-    reset_sequences = True  # 讓 id 比較可預測（非必要）
+    reset_sequences = True  
 
     def setUp(self):
         self.seller = User.objects.create_user(username="seller", password="pass12345")
@@ -42,7 +42,7 @@ class BidRaceConditionTest(TransactionTestCase):
         """
         每個 thread 用自己的 APIClient + 自己的 DB connection。
         """
-        close_old_connections()  # 重要：thread 內使用獨立 DB connection
+        close_old_connections()  # thread 內使用獨立 DB connection
 
         client = APIClient()
         # 🔥 設定 JWT header
@@ -81,10 +81,10 @@ class BidRaceConditionTest(TransactionTestCase):
 
         product = Product.objects.get(id=self.product.id)
 
-        # 1️⃣ 最終最高價正確
+        # 最終最高價正確
         self.assertEqual(product.current_highest_bid, Decimal("200.00"))
 
-        # 2️⃣ 最高 bid 記錄正確
+        # 最高 bid 記錄正確
         highest_bid = Bid.objects.filter(product=product)\
                                 .order_by("-bid_amount")\
                                 .first()
@@ -92,5 +92,6 @@ class BidRaceConditionTest(TransactionTestCase):
         self.assertEqual(highest_bid.bid_amount, Decimal("200.00"))
 
         statuses = [results[0][0], results[1][0]]
+        
         # 至少有一筆成功
         self.assertIn(201, statuses)

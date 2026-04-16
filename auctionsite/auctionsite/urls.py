@@ -29,7 +29,7 @@ def health(request):
 urlpatterns = [
     path("", health),
     path('admin/', admin.site.urls),
-    path('api/', include('auction.urls')),
+    
     path("api/token/", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
      # OpenAPI schema
@@ -39,5 +39,6 @@ urlpatterns = [
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     # ReDoc
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
-
+    
+    path('api/', include('auction.urls')),
 ]
