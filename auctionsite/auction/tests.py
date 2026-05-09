@@ -53,3 +53,21 @@ class BidAPITestCase(APITestCase):
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Bid.objects.count(), 1)
+
+    def test_authenticated_user_can_create_product(self):
+        self.authenticate()
+
+        response = self.client.post(
+            "/api/products/",
+            {
+                "title": "Camera",
+                "description": "Mirrorless camera",
+                "starting_bid": "300.00",
+                "image_url": "",
+                "location": "Taipei",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["current_highest_bid"], "300.00")

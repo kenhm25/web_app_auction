@@ -3,6 +3,10 @@ from .models import Product, Bid
 from django.contrib.auth import get_user_model
 
 class ProductSerializer(serializers.ModelSerializer):
+    def create(self, validated_data):
+        if "current_highest_bid" not in validated_data:
+            validated_data["current_highest_bid"] = validated_data["starting_bid"]
+        return super().create(validated_data)
     
     class Meta:
         model = Product

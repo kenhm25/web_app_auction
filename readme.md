@@ -242,6 +242,7 @@ docker compose exec web python manage.py migrate
 
 ---
 
+
 ## 5. Run tests
 
 ```bash
@@ -269,6 +270,49 @@ docker compose down
 API will be available at:
 http://localhost:8000/api/docs/
 
+
+---
+
+# Frontend Showcase
+
+A separate frontend has been added under `frontend/` to present the backend project like a product landing page and demo environment.
+
+## Frontend stack
+
+- React
+- Vite
+- TypeScript
+- Tailwind CSS
+
+## Frontend pages
+
+- `/` overview landing page
+- `/demo` API-backed interaction page
+- `/architecture` backend and deployment explanation page
+
+## Run the frontend locally
+
+If you want to run the frontend outside Docker:
+
+```bash
+cd frontend
+pnpm install
+pnpm dev
+```
+
+## Run the frontend in Docker development mode
+
+If you want to avoid installing Node.js locally, run the full stack with Docker:
+
+```bash
+docker compose up --build
+```
+
+Local URLs:
+
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:8000`
+- Swagger docs: `http://localhost:8000/api/docs/`
 
 ---
 
