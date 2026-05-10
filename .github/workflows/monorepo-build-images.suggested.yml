@@ -1,4 +1,4 @@
-name: Monorepo Build Images (Suggested)
+name: Monorepo CI/CD (Suggested)
 
 on:
   pull_request:
@@ -15,11 +15,14 @@ permissions:
 env:
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "22"
+  CLUSTER_NAME: auction-cluster
+  CLUSTER_REGION: asia-east1
   BACKEND_IMAGE_NAME: auction-api
   FRONTEND_IMAGE_NAME: auction-frontend
 
 jobs:
   validate:
+    name: Validate backend and frontend
     runs-on: ubuntu-latest
     env:
       DB_HOST: localhost
@@ -43,7 +46,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -51,13 +54,13 @@ jobs:
       - name: Install backend dependencies
         run: pip install -r auctionsite/requirements.txt
 
-      - name: Run backend migrations
+      - name: Run Django migrations
         run: python auctionsite/manage.py migrate
 
-      - name: Run backend tests
+      - name: Run Django tests
         run: python auctionsite/manage.py test
 
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -68,7 +71,7 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Build frontend SPA
+      - name: Run frontend production build validation
         working-directory: frontend
         env:
           VITE_API_BASE_URL: ""
@@ -76,15 +79,18 @@ jobs:
         run: npm run build
 
   build-and-push-images:
+    name: Build and push backend/frontend images
     runs-on: ubuntu-latest
     needs: validate
     if: github.event_name != 'pull_request'
+    outputs:
+      sha_short: ${{ steps.vars.outputs.sha_short }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Compute image tags
+      - name: Compute immutable image tag
         id: vars
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
@@ -119,38 +125,68 @@ jobs:
             ${{ secrets.DOCKER_USERNAME }}/${{ env.FRONTEND_IMAGE_NAME }}:latest
             ${{ secrets.DOCKER_USERNAME }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ steps.vars.outputs.sha_short }}
 
-  prepare-deployment-commands:
+  deploy-to-gke:
+    name: Deploy immutable backend/frontend images to GKE
     runs-on: ubuntu-latest
     needs: build-and-push-images
-    if: github.event_name != 'pull_request'
+    if: |
+      ${{ 
+        github.ref == 'refs/heads/main' ||
+        github.ref == 'refs/heads/feat/frontend-production-architecture'
+      }}
+    
+    # if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
-      - name: Compute image tags
-        id: vars
-        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Print manual kubectl commands
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install GKE auth plugin
+        run: gcloud components install gke-gcloud-auth-plugin
+
+      - name: Get GKE cluster credentials
         run: |
-          echo "Cluster deployment is intentionally disabled in this suggested workflow."
-          echo "Use these commands later after you create and start your GKE cluster:"
-          echo "kubectl apply -f k8s/postgres-secret.yaml"
-          echo "kubectl apply -f k8s/postgres-service.yaml"
-          echo "kubectl apply -f k8s/postgres-statefulset.yaml"
-          echo "kubectl apply -f k8s/service.yaml"
-          echo "kubectl apply -f k8s/deployment.yaml"
-          echo "kubectl apply -f k8s/frontend-service.yaml"
-          echo "kubectl apply -f k8s/frontend-deployment.yaml"
-          echo "kubectl apply -f k8s/ingress.frontend-backend.suggested.yaml"
-          echo "kubectl set image deployment/auction-api django=${{ secrets.DOCKER_USERNAME }}/${{ env.BACKEND_IMAGE_NAME }}:${{ steps.vars.outputs.sha_short }}"
-          echo "kubectl set image deployment/auction-frontend nginx=${{ secrets.DOCKER_USERNAME }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ steps.vars.outputs.sha_short }}"
+          gcloud container clusters get-credentials "${{ env.CLUSTER_NAME }}" \
+            --region "${{ env.CLUSTER_REGION }}" \
+            --project "${{ secrets.GCP_PROJECT_ID }}"
 
-  # deploy-to-gke:
-  #   This job is intentionally commented out because:
-  #   1. your cluster is currently offline
-  #   2. this repo is being prepared locally only
-  #   3. you explicitly asked not to deploy yet
-  #
-  #   When you're ready, you can add:
-  #   - Google Cloud authentication
-  #   - gcloud / kubectl setup
-  #   - kubectl apply / rollout steps
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f k8s/postgres-secret.yaml
+          kubectl apply -f k8s/postgres-service.yaml
+          kubectl apply -f k8s/postgres-statefulset.yaml
+          kubectl apply -f k8s/service.yaml
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/frontend-service.yaml
+          kubectl apply -f k8s/frontend-deployment.yaml
+          kubectl apply -f k8s/ingress.frontend-backend.suggested.yaml
+
+      - name: Roll out immutable backend and frontend image versions
+        run: |
+          # Deploy the same immutable git SHA for both services so one revision
+          # always corresponds to a matched frontend/backend pair.
+          kubectl set image deployment/auction-api \
+            django=${{ secrets.DOCKER_USERNAME }}/${{ env.BACKEND_IMAGE_NAME }}:${{ needs.build-and-push-images.outputs.sha_short }}
+
+          kubectl set image deployment/auction-frontend \
+            nginx=${{ secrets.DOCKER_USERNAME }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ needs.build-and-push-images.outputs.sha_short }}
+
+      - name: Wait for backend rollout
+        run: kubectl rollout status deployment/auction-api
+
+      - name: Wait for frontend rollout
+        run: kubectl rollout status deployment/auction-frontend
+
+      - name: Explain deployment strategy
+        run: |
+          echo "Immutable SHA tags are used for rollout so every deployment is traceable to one git revision."
+          echo "The latest tag is still published for convenience, but it is not used for rollout because latest is mutable."
+          echo "Deployment is restricted to main branch pushes to prevent feature branches from changing production automatically."
