@@ -1,6 +1,10 @@
-# Auction Web API
+# Auction System
 
 ![CI/CD](https://github.com/kenhm25/web_app_auction/actions/workflows/deploy.yml/badge.svg)
+
+<p align="center">
+  <img src="./system_arch.png" width="1000"/>
+</p>
 
 A production-oriented auction backend system built with **Django REST Framework**.
 
