@@ -10,6 +10,12 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import CustomTokenObtainPairSerializer
 from drf_spectacular.utils import extend_schema
 
+from google.oauth2 import id_token
+from google.auth.transport import requests
+from django.contrib.auth import get_user_model
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.conf import settings
+
 class ProductListCreateView(generics.ListCreateAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
@@ -72,3 +78,60 @@ class MeAPIView(generics.RetrieveAPIView):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+
+User = get_user_model()
+class GoogleLoginAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+
+        google_token = request.data.get("token")
+
+        if not google_token:
+            return Response(
+                {"detail": "Missing token"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            idinfo = id_token.verify_oauth2_token(
+                        google_token,
+                        requests.Request(),
+                        settings.GOOGLE_OAUTH_CLIENT_ID,
+                    )
+
+            email = idinfo.get("email")
+            name = idinfo.get("name")
+            if not email:
+                return Response(
+                    {"detail": "Email not provided"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            user, created = User.objects.get_or_create(
+                email=email,
+                defaults={
+                    "username": name,
+                },
+            )
+
+            refresh = RefreshToken.for_user(user)
+
+            return Response(
+                {
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
+                    "user": {
+                        "id": user.id,
+                        "username": user.username,
+                        "email": user.email,
+                    },
+                }
+            )
+
+        except ValueError as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
