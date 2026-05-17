@@ -17,6 +17,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.conf import settings
 
 import requests as http_requests
+import json
 from urllib.parse import urlencode
 from django.shortcuts import redirect
 
@@ -179,6 +180,13 @@ class GoogleOAuthCallbackAPIView(APIView):
         )
 
         refresh = RefreshToken.for_user(user)
+        safe_id_token_claims = {
+            "sub": idinfo.get("sub"),
+            "email": idinfo.get("email"),
+            "iss": idinfo.get("iss"),
+            "aud": idinfo.get("aud"),
+            "exp": idinfo.get("exp"),
+        }
 
         redirect_url = (
             settings.FRONTEND_OAUTH_REDIRECT_URL
@@ -190,6 +198,7 @@ class GoogleOAuthCallbackAPIView(APIView):
                     "username": user.username,
                     "email": user.email,
                     "id": user.id,
+                    "id_token_claims": json.dumps(safe_id_token_claims),
                 }
             )
         )

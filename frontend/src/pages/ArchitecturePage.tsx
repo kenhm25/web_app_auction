@@ -1,8 +1,10 @@
 import { Section } from "../components/ui/Section";
 
 const platformRows = [
+  ["Frontend", "React + Vite + TypeScript"],
   ["Application", "Django REST Framework"],
   ["Authentication", "Simple JWT"],
+  ["Auth Standards", "OAuth 2.0 + OpenID Connect"],
   ["Database", "PostgreSQL"],
   ["Container", "Docker + Gunicorn"],
   ["Orchestration", "Kubernetes manifests"],
@@ -37,7 +39,7 @@ export function ArchitecturePage() {
               Each layer has a clear role.
             </h2>
             <p className="text-lg leading-8 text-zinc-600">
-              The frontend remains a read-and-demo shell. The backend stays authoritative for identity, validation, and bidding integrity.
+              The frontend presents routed product flows and authentication touchpoints. OAuth 2.0, OIDC, and JWT-based backend controls keep identity, validation, and bidding integrity explicit.
             </p>
           </div>
           <div className="rounded-[2rem] border border-zinc-200/60 bg-white p-8">

@@ -18,7 +18,7 @@ export function useReveal<T extends HTMLElement>() {
           }
         });
       },
-      { threshold: 0.2 },
+      { threshold: 0.01 },
     );
 
     observer.observe(node);
