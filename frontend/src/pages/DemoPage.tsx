@@ -1,4 +1,3 @@
-import { GoogleLogin } from "@react-oauth/google";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Button } from "../components/ui/Button";
 import { Section } from "../components/ui/Section";
@@ -123,6 +122,36 @@ export function DemoPage() {
 
   useEffect(() => {
     void loadProducts();
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
+    const access = params.get("access");
+    const refresh = params.get("refresh");
+    const username = params.get("username");
+    const email = params.get("email");
+    const id = parseInt(params.get("id") || '100', 10);
+    if (access && refresh) {
+      setTokenState({
+        access,
+        refresh,
+        user: {
+          id: id,
+          username: username || "",
+          email: email || "",
+        },
+      });
+
+      setAuthNotice({
+        tone: "success",
+        title: "Google login success",
+        message: `Signed in as ${username}`,
+      });
+
+      // 清掉網址 query string
+      window.history.replaceState({}, "", "/demo");
+    }
   }, []);
 
   useEffect(() => {
@@ -571,54 +600,19 @@ export function DemoPage() {
                         <Button className="w-full" type="submit" disabled={isAuthLoading}>
                           {isAuthLoading ? "Processing" : "Sign In"}
                         </Button>
-                        <div className="pt-2">
-                          <GoogleLogin
-                            onSuccess={async (credentialResponse) => {
-                              console.log("GOOGLE LOGIN SUCCESS");
-                              console.log(credentialResponse);
-
-                              try {
-                                const response = await fetch(
-                                  "http://localhost:8000/api/auth/google/",
-                                  {
-                                    method: "POST",
-                                    headers: {
-                                      "Content-Type": "application/json",
-                                    },
-                                    body: JSON.stringify({
-                                      token: credentialResponse.credential,
-                                    }),
-                                  }
-                                );
-
-                                const data = await response.json();
-
-                                console.log("DJANGO RESPONSE");
-                                console.log(data);
-
-                                setTokenState(data);
-
-                                setAuthNotice({
-                                  tone: "success",
-                                  title: "Google login success",
-                                  message: `Signed in as ${data.user.username}`,
-                                });
-
-                              } catch (error) {
-                                console.error(error);
-
-                                setAuthNotice({
-                                  tone: "error",
-                                  title: "Google login failed",
-                                  message: "Unable to authenticate with backend.",
-                                });
-                              }
+                        
+                          <Button
+                            type="button"
+                            className="w-full"
+                            variant="secondary"
+                            onClick={() => {
+                              window.location.href =
+                                "http://localhost:8000/api/auth/google/start/";
                             }}
-                            onError={() => {
-                              console.log("Google Login Failed");
-                            }}
-                          />
-                        </div>
+                          >
+                            Sign in with Google
+                          </Button>
+                        
                         <NoticeCard notice={authNotice} />
                         <button
                           type="button"

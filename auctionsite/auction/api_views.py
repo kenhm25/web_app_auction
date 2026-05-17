@@ -16,6 +16,10 @@ from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.conf import settings
 
+import requests as http_requests
+from urllib.parse import urlencode
+from django.shortcuts import redirect
+
 class ProductListCreateView(generics.ListCreateAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
@@ -81,57 +85,113 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
 
 User = get_user_model()
-class GoogleLoginAPIView(APIView):
+
+class GoogleOAuthStartAPIView(APIView):
     permission_classes = [AllowAny]
 
-    def post(self, request):
+    def get(self, request):
+        params = {
+            "client_id": settings.GOOGLE_OAUTH_CLIENT_ID,
+            "redirect_uri": settings.GOOGLE_OAUTH_REDIRECT_URI,
+            "response_type": "code",
+            "scope": "openid email profile",
+            "access_type": "offline",
+            "prompt": "consent",
+        }
 
-        google_token = request.data.get("token")
+        google_auth_url = (
+            "https://accounts.google.com/o/oauth2/v2/auth?"
+            + urlencode(params)
+        )
 
-        if not google_token:
+        return redirect(google_auth_url)
+
+
+class GoogleOAuthCallbackAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        code = request.GET.get("code")
+
+        if not code:
             return Response(
-                {"detail": "Missing token"},
+                {"detail": "Missing authorization code"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        token_response = http_requests.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "code": code,
+                "client_id": settings.GOOGLE_OAUTH_CLIENT_ID,
+                "client_secret": settings.GOOGLE_OAUTH_CLIENT_SECRET,
+                "redirect_uri": settings.GOOGLE_OAUTH_REDIRECT_URI,
+                "grant_type": "authorization_code",
+            },
+            timeout=10,
+        )
+
+        if token_response.status_code != 200:
+            return Response(
+                {
+                    "detail": "Failed to exchange authorization code",
+                    "google_response": token_response.json(),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        token_data = token_response.json()
+        google_id_token = token_data.get("id_token")
+
+        if not google_id_token:
+            return Response(
+                {"detail": "No id_token returned from Google"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         try:
             idinfo = id_token.verify_oauth2_token(
-                        google_token,
-                        requests.Request(),
-                        settings.GOOGLE_OAUTH_CLIENT_ID,
-                    )
-
-            email = idinfo.get("email")
-            name = idinfo.get("name")
-            if not email:
-                return Response(
-                    {"detail": "Email not provided"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            user, created = User.objects.get_or_create(
-                email=email,
-                defaults={
-                    "username": name,
-                },
+                google_id_token,
+                requests.Request(),
+                settings.GOOGLE_OAUTH_CLIENT_ID,
             )
-
-            refresh = RefreshToken.for_user(user)
-
-            return Response(
-                {
-                    "access": str(refresh.access_token),
-                    "refresh": str(refresh),
-                    "user": {
-                        "id": user.id,
-                        "username": user.username,
-                        "email": user.email,
-                    },
-                }
-            )
-
         except ValueError as e:
             return Response(
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        email = idinfo.get("email")
+        name = idinfo.get("name") or email
+        sub = idinfo.get("sub")
+
+        if not email:
+            return Response(
+                {"detail": "Email not provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user, created = User.objects.get_or_create(
+            email=email,
+            defaults={
+                "username": name,
+            },
+        )
+
+        refresh = RefreshToken.for_user(user)
+
+        redirect_url = (
+            settings.FRONTEND_OAUTH_REDIRECT_URL
+            + "?"
+            + urlencode(
+                {
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
+                    "username": user.username,
+                    "email": user.email,
+                    "id": user.id,
+                }
+            )
+        )
+
+        return redirect(redirect_url)
