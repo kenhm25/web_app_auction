@@ -13,7 +13,7 @@ This project focuses on backend engineering concerns such as transactional consi
 ## System Architecture
 
 <p align="center">
-  <img src="./system_arch.png" width="1000" alt="Auction platform system architecture"/>
+  <img src="./assets/readme/system_arch.png" width="1000" alt="Auction platform system architecture"/>
 </p>
 
 The application is split into a React frontend, a Django REST Framework API, and a PostgreSQL persistence layer. The backend owns request validation, authentication, auction write rules, and transactional consistency. The frontend consumes the API through a stateless REST boundary and presents the backend system through a small product interface.
@@ -105,6 +105,28 @@ The transaction boundary is intentionally narrow:
 6. Commit the write as one consistency unit.
 
 This makes PostgreSQL the source of truth for concurrent write ordering, which is the critical property for an auction system.
+
+---
+
+## Interactive Demo UI
+
+The frontend is designed as an API interaction surface for the backend system. It keeps the auction workflow lightweight while making JWT-authenticated requests, backend validation behavior, request/response payloads, and transaction-aware bid flows easier to inspect.
+
+### Product Interaction Surface
+
+The product view keeps the current auction state visible while authenticated users create listings and submit bids through the DRF API.
+
+<p align="center">
+  <img src="./assets/readme/product_image.png" width="920" alt="Auction product interaction surface"/>
+</p>
+
+### API Trace Drawer
+
+The API drawer exposes recent backend interactions so request methods, payloads, responses, and validation outcomes can be reviewed without leaving the demo flow.
+
+<p align="center">
+  <img src="./assets/readme/api_drawer.png" width="920" alt="API trace drawer showing request and response inspection"/>
+</p>
 
 ---
 
@@ -227,7 +249,7 @@ http://localhost:8000/api/schema/
 ├── .github/workflows/        # CI/CD validation, image build, and deployment workflow
 ├── docker-compose.yml        # Local full-stack runtime
 ├── Dockerfile                # Backend image definition
-└── system_arch.png           # System architecture diagram
+└── assets/readme/            # README architecture and demo screenshots
 ```
 
 ---
