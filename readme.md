@@ -1,302 +1,177 @@
-# Auction System
+# Auction Platform
 
 ![CI/CD](https://github.com/kenhm25/web_app_auction/actions/workflows/deploy.yml/badge.svg)
 
+Production-oriented auction platform focused on transactional consistency, stateless API architecture, and Kubernetes-native deployment.
+
+**Django REST Framework · JWT APIs · PostgreSQL Row-Level Locking · React · Docker · Gunicorn · Kubernetes · GKE · OpenAPI**
+
+This project focuses on backend engineering concerns such as transactional consistency, authentication boundaries, deployment architecture, and API documentation. The auction domain is intentionally compact so the system design, data consistency model, and deployment shape remain easy to inspect.
+
+---
+
+## System Architecture
+
 <p align="center">
-  <img src="./system_arch.png" width="1000"/>
+  <img src="./system_arch.png" width="1000" alt="Auction platform system architecture"/>
 </p>
 
-A production-oriented auction backend system built with **Django REST Framework**.
+The application is split into a React frontend, a Django REST Framework API, and a PostgreSQL persistence layer. The backend owns request validation, authentication, auction write rules, and transactional consistency. The frontend consumes the API through a stateless REST boundary and presents the backend system through a small product interface.
 
-This project simulates a real-world auction platform and focuses on backend engineering concerns such as:
-
-- concurrency-safe bidding logic
-- transactional integrity
-- RESTful API design
-- containerized deployment
-- CI/CD automation
-- Kubernetes-based cloud deployment
-
-The system is designed to demonstrate how a backend service can be built, tested, containerized, and deployed using modern backend engineering practices.
-
----
-
-# Tech Stack
-
-**Backend**
-
-- Python
-- Django
-- Django REST Framework
-
-**Database**
-
-- PostgreSQL
-- Django ORM
-
-**Infrastructure**
-
-- Docker
-- Docker Compose
-- Kubernetes (GKE)
-- Gunicorn
-
-**DevOps**
-
-- GitHub Actions
-- Docker Hub
-- CI/CD pipeline
-- Automated Kubernetes deployment
-
-**API Documentation**
-
-- OpenAPI 3.0
-- Swagger UI
-- drf-spectacular
-
----
-
-# System Architecture
-```
+```text
 Client
-   │
-   ▼
-Django REST API
-   │
-   ├── Authentication Layer (JWT)
-   │
-   ├── Business Logic
-   │      └── Concurrency-safe bidding
-   │
-   ├── ORM
-   │
-   ▼
-PostgreSQL
+  -> React + Vite frontend
+  -> Django REST Framework API
+  -> Authentication and transaction boundary
+  -> PostgreSQL
 ```
-
-Production deployment
-
-```
-GitHub
-   │
-   ▼
-GitHub Actions (CI/CD)
-   │
-   ├── Run tests
-   ├── Build Docker image
-   ├── Push image to Docker Hub
-   │
-   ▼
-Google Kubernetes Engine
-   │
-   ├── Deployment
-   ├── Replica pods
-   └── Rolling updates
-```
----
-
-# Features
-
-## Authentication (JWT)
-
-- User registration
-- Login with JWT
-- Token refresh
-- Authenticated user profile endpoint
-- Stateless authentication
-
-Key concepts demonstrated
-
-- token-based authentication
-- secure password hashing
-- request authentication pipeline
 
 ---
 
-## Product API
+## Engineering Highlights
 
-RESTful endpoints for managing auction products.
-
-Features
-
-- authenticated product creation
-- public product listing
-- seller automatically derived from request user
-- serializer-based validation
-- permission-controlled write operations
+- **Transactional bid consistency**: bid placement protects the highest-bid invariant with `transaction.atomic()` and `select_for_update()`.
+- **Stateless REST API boundary**: authenticated requests use JWT bearer tokens instead of server-side session state.
+- **PostgreSQL-backed correctness**: auction state is stored in a relational model with foreign keys, decimal bid values, and row-level locking.
+- **Containerized runtime**: backend and frontend are packaged as Docker images; the API runs behind Gunicorn.
+- **Kubernetes-native deployment**: workloads are exposed through Services and Ingress routing, with manifests for backend, frontend, and PostgreSQL.
+- **API documentation**: OpenAPI schema and Swagger UI are generated through `drf-spectacular`.
 
 ---
 
-## Concurrency-Safe Bidding System
+## Design Decisions
 
-The core engineering challenge in this project is handling concurrent bids safely.
-
-Features
-
-- only authenticated users can place bids
-- bid must be greater than current highest bid
-- atomic bid transactions
-- prevention of race conditions
-
-Implemented using
-
-- transaction.atomic()
-- select_for_update() row-level locking
-- transactional updates
-
-Concepts demonstrated
-
-- transaction isolation
-- pessimistic locking
-- race condition prevention
-- financial data consistency
+- Treat the highest bid as a database consistency invariant, not only an application-level check.
+- Use PostgreSQL row-level locking to serialize competing bid writes on the same product.
+- Keep the API stateless with JWT authentication and bearer-token authorization.
+- Separate frontend, backend, and database workloads for containerized deployment.
+- Route traffic through Kubernetes Services and Ingress instead of binding directly to pods.
+- Validate backend tests and frontend production builds before deployment.
 
 ---
 
-## Relational Database Design
+## Architecture Overview
 
+| Layer | Responsibility | Technology |
+| --- | --- | --- |
+| Frontend | Product demo UI, API-backed interaction, architecture pages | React, TypeScript, Vite |
+| Backend API | REST endpoints, authentication, validation, business rules | Django, Django REST Framework |
+| Authentication | Registration, JWT login, protected API access | DRF SimpleJWT |
+| Consistency Layer | Bid validation, atomic writes, row-level locking | Django transactions, PostgreSQL |
+| Database | Products, bids, users, relational constraints | PostgreSQL, Django ORM |
+| Runtime | Containerized services and API process management | Docker, Docker Compose, Gunicorn |
+| Deployment | Workload orchestration, service routing, rollout | Kubernetes, Ingress, Services, GKE |
 
-### Main entities
-  - User  
-  - Product  
-  - Bid  
-
-### Relationships
-- User → Product (seller)  
-- User → Bid (bidder)  
-- Product → Bid  
-
-
-### Design considerations
-
-- referential integrity via foreign keys
-- precise financial values using Decimal
-- database consistency enforced through service layer
+The backend exposes a small but production-shaped API surface: user registration, JWT login, product listing/creation, authenticated bid placement, and user profile access. The implementation keeps business rules close to the transaction boundary so correctness does not depend on client behavior or request timing.
 
 ---
 
-## API Testing
+## Concurrency-Safe Bidding
 
-Automated tests verify core business rules.
+The highest bid is treated as a contention-sensitive invariant.
 
-Test coverage includes
+Concurrent bid submissions are serialized using PostgreSQL row-level locking with `transaction.atomic()` and `select_for_update()` to prevent lost updates and inconsistent auction state.
 
-- authentication requirements
-- bid validation
-- HTTP response correctness
-- database state validation
-- concurrency behavior
+```python
+with transaction.atomic():
+    product = get_object_or_404(
+        Product.objects.select_for_update(),
+        id=product_id,
+    )
 
-Testing tools
+    if bid_amount <= product.current_highest_bid:
+        return Response(
+            {"detail": f"Bid must be greater than {product.current_highest_bid}."},
+            status=400,
+        )
 
-- Django APITestCase
-- transaction-based tests
-- multi-thread race condition simulations
-
----
-# 📘 API Documentation (Swagger / OpenAPI)
-
-Interactive API documentation is available via Swagger UI.
-
-Access:
-
-```
-http://localhost:8000/api/docs/
+    Product.objects.filter(id=product_id).update(current_highest_bid=bid_amount)
+    bid = Bid.objects.create(
+        product_id=product_id,
+        bidder=request.user,
+        bid_amount=bid_amount,
+    )
 ```
 
-Raw OpenAPI schema:
+The transaction boundary is intentionally narrow:
 
-```
-http://localhost:8000/api/schema/
-```
+1. Validate the incoming bid payload.
+2. Open an atomic transaction.
+3. Lock the target product row.
+4. Compare against the current highest bid.
+5. Update the product and create the bid record.
+6. Commit the write as one consistency unit.
+
+This makes PostgreSQL the source of truth for concurrent write ordering, which is the critical property for an auction system.
+
 ---
 
-# 🐳 Running with Docker (Recommended)
+## Deployment Architecture
 
-## 1. Clone repository
+The platform is deployed as containerized workloads behind Kubernetes Services and Ingress routing.
+
+```text
+GitHub Actions
+  -> backend tests and frontend build validation
+  -> Docker image build
+  -> Docker Hub push
+  -> Kubernetes rollout
+  -> Service + Ingress traffic routing
+```
+
+Deployment components:
+
+- Django API container running with Gunicorn.
+- React frontend container served through Nginx.
+- PostgreSQL stateful workload with persistent storage.
+- Backend and frontend Kubernetes Services.
+- Ingress routing `/api` traffic to the backend and `/` traffic to the frontend.
+- GitHub Actions pipeline for validation, image build, push, and GKE rollout.
+- Immutable git SHA image tags for traceable deployments.
+
+GKE is used as the managed Kubernetes target, but the deployment model is expressed through standard Kubernetes primitives.
+
+---
+
+## Technology Stack
+
+| Area | Stack |
+| --- | --- |
+| Backend | Python, Django, Django REST Framework |
+| Frontend | React, TypeScript, Vite, Tailwind CSS |
+| Authentication | JWT, DRF SimpleJWT |
+| Database | PostgreSQL, Django ORM |
+| API Documentation | OpenAPI 3.0, Swagger UI, drf-spectacular |
+| Runtime | Docker, Docker Compose, Gunicorn, Nginx |
+| Deployment | Kubernetes, Services, Ingress, GKE |
+| CI/CD | GitHub Actions, Docker Hub |
+
+---
+
+## Local Development
+
+Run the full stack:
 
 ```bash
-git clone https://github.com/kenhm25/web_app_auction
-cd web_app_auction/
+docker compose up --build
 ```
 
----
+Local services:
 
-## 2. Build containers
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:8000`
+- Swagger UI: `http://localhost:8000/api/docs/`
+- OpenAPI schema: `http://localhost:8000/api/schema/`
 
-```bash
-docker compose build
-```
-
----
-
-## 3. Start services
-
-```bash
-docker compose up -d
-```
-
----
-
-## 4. Apply migrations
+Useful backend commands:
 
 ```bash
 docker compose exec web python manage.py migrate
-```
-
----
-
-
-## 5. Run tests
-
-```bash
 docker compose exec web python manage.py test
-```
-
----
-
-## 6. Create superuser (optional)
-
-```bash
 docker compose exec web python manage.py createsuperuser
 ```
 
----
-
-## 7. Stop services
-
-```bash
-docker compose down
-```
-
----
-
-API will be available at:
-http://localhost:8000/api/docs/
-
-
----
-
-# Frontend Showcase
-
-A separate frontend has been added under `frontend/` to present the backend project like a product landing page and demo environment.
-
-## Frontend stack
-
-- React
-- Vite
-- TypeScript
-- Tailwind CSS
-
-## Frontend pages
-
-- `/` overview landing page
-- `/demo` API-backed interaction page
-- `/architecture` backend and deployment explanation page
-
-## Run the frontend locally
-
-If you want to run the frontend outside Docker:
+Run the frontend separately:
 
 ```bash
 cd frontend
@@ -304,275 +179,41 @@ pnpm install
 pnpm dev
 ```
 
-## Run the frontend in Docker development mode
-
-If you want to avoid installing Node.js locally, run the full stack with Docker:
-
-```bash
-docker compose up --build
-```
-
-Local URLs:
-
-- Frontend: `http://localhost:5173`
-- Backend API: `http://localhost:8000`
-- Swagger docs: `http://localhost:8000/api/docs/`
-
 ---
 
-# 🧪 Example API Flow (Manual Testing)
+## API Documentation
 
-## 1️⃣ Register
+Interactive API documentation is available through Swagger UI:
 
-```bash
-curl -X POST http://localhost:8000/api/register/ \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "test_user",
-    "email": "test@test.com",
-    "password": "strongpassword123"
-  }'
+```text
+http://localhost:8000/api/docs/
+```
+
+Raw OpenAPI schema:
+
+```text
+http://localhost:8000/api/schema/
 ```
 
 ---
 
-## 2️⃣ Login
+## Repository Structure
 
-```bash
-curl -X POST http://localhost:8000/api/token/ \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "test_user",
-    "password": "strongpassword123"
-  }'
+```text
+.
+├── auctionsite/              # Django project and DRF application
+├── frontend/                 # React/Vite frontend
+├── k8s/                      # Kubernetes manifests for API, frontend, PostgreSQL, Services, Ingress
+├── .github/workflows/        # CI/CD validation, image build, and deployment workflow
+├── docker-compose.yml        # Local full-stack runtime
+├── Dockerfile                # Backend image definition
+└── system_arch.png           # System architecture diagram
 ```
 
 ---
 
-## 3️⃣ Access Protected Endpoint
-
-```bash
-curl http://localhost:8000/api/me/ \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
----
-
-## 4️⃣ Create Product
-
-```bash
-curl -X POST http://localhost:8000/api/products/ \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "MacBook Pro",
-    "description": "M1 16GB",
-    "starting_bid": "20000.00",
-    "location": "Taipei"
-  }'
-```
-
----
-
-## 5️⃣ Place Bid
-
-```bash
-curl -X POST http://localhost:8000/api/products/1/bids/ \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "bid_amount": "25000.00"
-  }'
-```
-
----
-
-# CI/CD Pipeline
-
-The project uses **GitHub Actions** to automate build, test, and deployment.
-
-Pipeline workflow
-
-1. Run automated tests
-2. Build Docker image
-3. Push image to Docker Hub
-4. Deploy new version to Kubernetes
-5. Perform rolling update
-
-Deployment target
-
-- Google Kubernetes Engine (GKE)
-
-This setup simulates a simplified production deployment pipeline.
-
----
-
-# Kubernetes Deployment
-
-The application runs inside a Kubernetes cluster.
-
-Deployment configuration includes
-
-- multiple replicas
-- containerized Django service
-- Gunicorn production server
-- rolling updates during deployment
-
-This demonstrates how a backend API can be deployed in a scalable container orchestration environment.
-
----
-
-# Deploying to Google Kubernetes Engine (GKE)
-
-This project can be deployed to **Google Kubernetes Engine (GKE)** using the CI/CD pipeline configured in GitHub Actions.
-
-The pipeline automatically:
-
-1. Builds the Docker image
-2. Pushes the image to Docker Hub
-3. Deploys the latest version to the Kubernetes cluster
-
-The only requirement is that the **GKE cluster already exists**.
-
----
-
-## 1. Create a GKE Cluster
-
-Before deploying, create a Kubernetes cluster in GCP:
-
-```bash
-gcloud container clusters create auction-cluster \
-  --region asia-east1 \
-  --num-nodes 1
-```
-
-This command creates:
-
-- A Kubernetes control plane
-- A node pool with 1 VM node
-- Networking and load balancing infrastructure
-
-Cluster creation usually takes **3–5 minutes**.
-
----
-
-## 2. Trigger Deployment via CI/CD
-
-Once the cluster is ready, simply push code to the `main` branch:
-
-```bash
-git push
-```
-
-The GitHub Actions pipeline will automatically:
-
-1. Run tests
-2. Build the Docker image
-3. Push the image to Docker Hub
-4. Deploy the application to GKE
-
----
-
-## 3. Verify Deployment
-
-You can verify that the application is running using:
-
-```bash
-kubectl get pods
-kubectl get services
-kubectl get ingress
-```
-
----
-
-## 4. Shut Down the Cluster (Cost Control)
-
-To avoid unnecessary cloud costs, delete the cluster when it is not in use:
-
-```bash
-gcloud container clusters delete auction-cluster \
-  --region asia-east1
-```
-
-Cluster deletion typically takes **5–15 minutes**.
-
-Deleting the cluster removes:
-
-- Kubernetes control plane
-- Node virtual machines
-- Load balancers
-- External IP addresses
-
-This removes most GCP infrastructure costs (compute, load balancer, external IP).
-Persistent disks may still remain and should be manually checked and deleted if unused.
-
----
-Then check the disks use:
-
-```bash
-gcloud compute disks list
-```
-
-If any disks still running:
-
-```bash
-gcloud compute disks delete DISK_NAME --zone ZONE
-```
----
-
-## 5. Redeploy Later
-
-To redeploy the application later:
-
-1. Recreate the cluster with 50GB standard persistent disk (node disk).
-
-```bash
-gcloud container clusters create auction-cluster \
-  --region asia-east1 \
-  --num-nodes 1 \
-  --disk-type pd-standard \
-  --disk-size 50
-```
-
-> Note: This configures the node disk.
-Application data (PostgreSQL) uses separate persistent volumes.
-
-2. Ensure the CI/CD pipeline is configured with cluster credentials before triggering deployment.
-Alternatively, apply Kubernetes manifests manually:
-
-```bash
-git push
-```
-or
-
-```bash
-kubectl apply -f k8s/
-```
- 
-
-
-The CI/CD pipeline will automatically deploy the application again.
-
-
-# Engineering Concepts Demonstrated
-
-- RESTful API design
-- stateless authentication (JWT)
-- transactional database operations
-- race condition prevention
-- relational database modeling
-- containerized services
-- automated CI/CD pipelines
-- Kubernetes-based deployment
-- layered backend architecture
-
----
-
-
-# Author
+## Author
 
 Ken Hu
 
-GitHub
-
-https://github.com/kenhm25
+GitHub: https://github.com/kenhm25
