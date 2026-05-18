@@ -35,6 +35,7 @@ Client
 - **PostgreSQL-backed correctness**: auction state is stored in a relational model with foreign keys, decimal bid values, and row-level locking.
 - **Containerized runtime**: backend and frontend are packaged as Docker images; the API runs behind Gunicorn.
 - **Kubernetes-native deployment**: workloads are exposed through Services and Ingress routing, with manifests for backend, frontend, and PostgreSQL.
+- **Concurrency test coverage**: transaction-aware tests verify that competing bid writes preserve the highest-bid invariant.
 - **API documentation**: OpenAPI schema and Swagger UI are generated through `drf-spectacular`.
 
 ---
@@ -44,6 +45,7 @@ Client
 - Treat the highest bid as a database consistency invariant, not only an application-level check.
 - Use PostgreSQL row-level locking to serialize competing bid writes on the same product.
 - Keep the API stateless with JWT authentication and bearer-token authorization.
+- Test concurrent bid behavior with transaction-aware backend tests, not only single-request API tests.
 - Separate frontend, backend, and database workloads for containerized deployment.
 - Route traffic through Kubernetes Services and Ingress instead of binding directly to pods.
 - Validate backend tests and frontend production builds before deployment.
@@ -103,6 +105,24 @@ The transaction boundary is intentionally narrow:
 6. Commit the write as one consistency unit.
 
 This makes PostgreSQL the source of truth for concurrent write ordering, which is the critical property for an auction system.
+
+---
+
+## Testing Strategy
+
+The backend test suite validates API behavior, authentication requirements, and the concurrency guarantees around bid placement.
+
+Test coverage includes:
+
+- API validation for product and bid endpoints.
+- JWT-protected endpoint access.
+- Bid amount validation against the current highest bid.
+- Database state assertions after successful writes.
+- Concurrent bid submission using multiple clients and independent database transactions.
+
+The concurrency test uses `TransactionTestCase` to exercise transactional behavior against PostgreSQL. The expected invariant is that the final `current_highest_bid` matches the highest accepted bid, even when competing requests target the same product at nearly the same time.
+
+CI validates backend transactional behavior against PostgreSQL before container image publication and Kubernetes rollout.
 
 ---
 

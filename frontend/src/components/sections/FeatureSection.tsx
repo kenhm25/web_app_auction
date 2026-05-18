@@ -2,47 +2,53 @@ import { Section } from "../ui/Section";
 
 const features = [
   {
-    title: "Authentication",
+    title: "Stateless API Boundary",
     description:
-      "JWT-based login and identity boundaries make the API easy to reason about during demos and interviews.",
-    detail: "Token issuance, profile lookup, and protected write operations are already supported by the backend.",
+      "JWT bearer tokens keep authenticated API access explicit without server-side session coupling.",
+    detail: "Registration, login, profile access, product creation, and bid submission stay behind a simple DRF REST contract.",
   },
   {
-    title: "Bidding Integrity",
+    title: "Transactional Consistency",
     description:
-      "The core story is safe bidding under concurrency, using transactional protection instead of optimistic assumptions.",
-    detail: "The interface highlights how higher bids win and how invalid bids are rejected through controlled business rules.",
+      "The highest bid is handled as a contention-sensitive invariant, not a client-side assumption.",
+    detail: "Bid writes are protected with transaction.atomic() and select_for_update() so concurrent requests serialize at the database row.",
   },
   {
-    title: "Deployment",
+    title: "Deployment Architecture",
     description:
-      "Containerization and Kubernetes manifests turn the project into a system design conversation, not just an API walkthrough.",
-    detail: "Docker, Compose, health checks, and Kubernetes resources are surfaced as first-class product capabilities.",
+      "The project is packaged and routed like a small production service rather than a local-only demo.",
+    detail: "Docker images, Gunicorn, PostgreSQL, Kubernetes Services, Ingress, and CI validation are visible in the system narrative.",
   },
 ];
 
 export function FeatureSection() {
   return (
-    <Section className="bg-zinc-50/50">
-      <div className="mx-auto flex max-w-2xl flex-col items-center gap-6 text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.34em] text-zinc-500">Core Capabilities</p>
-        <h2 className="text-4xl font-semibold tracking-[-0.04em] text-zinc-950 sm:text-5xl">
-          The UI stays quiet so the system design can speak.
-        </h2>
-      </div>
-      <div className="mt-16 grid gap-6 lg:grid-cols-3">
-        {features.map((feature) => (
-          <article
-            key={feature.title}
-            className="rounded-[2rem] border border-zinc-200/60 bg-white p-8 transition-all duration-300 ease-soft hover:border-zinc-300/60 hover:bg-zinc-50/60"
-          >
-            <p className="text-sm font-medium text-zinc-500">{feature.title}</p>
-            <h3 className="mt-6 text-2xl font-semibold tracking-[-0.03em] text-zinc-950">
-              {feature.description}
-            </h3>
-            <p className="mt-8 text-base leading-8 text-zinc-600">{feature.detail}</p>
-          </article>
-        ))}
+    <Section className="bg-zinc-50/60">
+      <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr]">
+        <div className="max-w-xl">
+          <p className="text-xs font-semibold uppercase text-zinc-500">Engineering Highlights</p>
+          <h2 className="mt-6 text-4xl font-semibold leading-tight text-zinc-950 sm:text-5xl">
+            Built around the backend decisions an interviewer will inspect.
+          </h2>
+          <p className="mt-6 text-lg leading-8 text-zinc-600">
+            The interface foregrounds transaction safety, API boundaries, and deployment shape so the project reads as a backend system, not a CRUD screen.
+          </p>
+        </div>
+
+        <div className="grid gap-5">
+          {features.map((feature) => (
+            <article
+              key={feature.title}
+              className="border-b border-zinc-200/70 pb-8 last:border-b-0 last:pb-0"
+            >
+              <p className="text-sm font-medium text-zinc-500">{feature.title}</p>
+              <h3 className="mt-4 text-2xl font-semibold leading-snug text-zinc-950">
+                {feature.description}
+              </h3>
+              <p className="mt-4 text-base leading-8 text-zinc-600">{feature.detail}</p>
+            </article>
+          ))}
+        </div>
       </div>
     </Section>
   );

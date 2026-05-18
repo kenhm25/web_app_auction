@@ -360,13 +360,20 @@ export function DemoPage() {
     setBidNotice(null);
   }
 
+  function handleTracePanelToggle() {
+    if (isTracePanelOpen) {
+      setSelectedTraceId(null);
+    }
+    setIsTracePanelOpen((current) => !current);
+  }
+
   return (
     <>
       <div className="pointer-events-none fixed inset-x-0 top-0 z-40 h-0">
-        <div className="pointer-events-auto absolute right-6 top-6">
+        <div className="pointer-events-auto absolute right-6 top-20">
           <button
             type="button"
-            onClick={() => setIsTracePanelOpen((current) => !current)}
+            onClick={handleTracePanelToggle}
             className="rounded-full border border-zinc-200 bg-white px-4 py-3 text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500 transition-all duration-300 ease-in-out hover:bg-zinc-50"
             aria-expanded={isTracePanelOpen}
             aria-controls="api-trace-panel"
@@ -515,143 +522,154 @@ export function DemoPage() {
       ) : null}
 
       <Section className="pt-16 sm:pt-20">
-      <div className="mx-auto space-y-16">
-        <div className="mx-auto max-w-3xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.34em] text-zinc-500">Interactive Demo</p>
-          <h1 className="mt-6 text-5xl font-semibold tracking-[-0.05em] text-zinc-950 sm:text-6xl">
-            Show the API through a calm, readable interface.
-          </h1>
-          <p className="mt-6 text-lg leading-8 text-zinc-600">
-            Register, sign in, create a listing, place a bid, and inspect the exact API payload and response for every action.
-          </p>
-        </div>
+        <div className="mx-auto space-y-12">
+          <div className="flex flex-col justify-between gap-6 rounded-[2rem] border border-zinc-200/60 bg-white p-8 shadow-soft sm:p-10 lg:flex-row lg:items-end">
+            <div className="max-w-3xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.34em] text-zinc-500">Interactive Demo</p>
+              <h1 className="mt-5 text-4xl font-semibold tracking-[-0.04em] text-zinc-950 sm:text-5xl">
+                Show the API through a calm, readable interface.
+              </h1>
+              <p className="mt-5 text-lg leading-8 text-zinc-600">
+                Register, sign in, create a listing, place a bid, and inspect the exact API payload and response for every action.
+              </p>
+            </div>
 
-        <div className="grid gap-8 lg:grid-cols-[0.92fr_1.08fr]">
+            <div className="w-full rounded-[1.5rem] bg-zinc-50 p-5 lg:max-w-xs">
+              <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Session</p>
+              <div className="mt-2 flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-lg font-semibold text-zinc-950">
+                    {isAuthenticated ? "JWT active" : "Guest mode"}
+                  </p>
+                  <p className="mt-1 truncate text-sm text-zinc-500">
+                    {isAuthenticated ? tokenState?.user.username : "Sign in to create products or bid."}
+                  </p>
+                </div>
+                <span
+                  className={[
+                    "mt-1 h-2.5 w-2.5 shrink-0 rounded-full",
+                    isAuthenticated ? "bg-emerald-500" : "bg-zinc-300",
+                  ].join(" ")}
+                />
+              </div>
+              {isAuthenticated ? (
+                <Button type="button" variant="secondary" className="mt-5 w-full px-5 py-2.5" onClick={handleSignOut}>
+                  Sign Out
+                </Button>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="grid gap-8 lg:grid-cols-[0.92fr_1.08fr]">
           <div className="space-y-8">
-            <div className={["rounded-[2rem] border border-zinc-200/60 bg-white", isAuthenticated ? "p-6" : "p-8"].join(" ")}>
+            {!isAuthenticated ? (
+            <div className="rounded-[2rem] border border-zinc-200/60 bg-white p-8">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-medium text-zinc-500">Authentication</p>
                   <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-zinc-950">
-                    {isAuthenticated ? "Session active" : isRegisterMode ? "Create account" : "Sign in"}
+                    {isRegisterMode ? "Create account" : "Sign in"}
                   </h2>
                 </div>
                 <div className="rounded-full bg-zinc-100 px-4 py-2 text-xs uppercase tracking-[0.24em] text-zinc-500">
-                  {isAuthenticated ? "active" : "guest"}
+                  guest
                 </div>
               </div>
 
-              {!isAuthenticated ? (
-                <>
-                  {!isRegisterMode ? (
-                    <form className="mt-8 space-y-4" onSubmit={handleLogin}>
-                      <label className="block text-sm text-zinc-600">
-                        Username
-                        <input
-                          className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition-colors duration-300 ease-soft focus:border-zinc-400"
-                          value={credentials.username}
-                          onChange={(event) =>
-                            setCredentials((current) => ({ ...current, username: event.target.value }))
-                          }
-                        />
-                      </label>
-                      <label className="block text-sm text-zinc-600">
-                        Password
-                        <input
-                          type="password"
-                          className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition-colors duration-300 ease-soft focus:border-zinc-400"
-                          value={credentials.password}
-                          onChange={(event) =>
-                            setCredentials((current) => ({ ...current, password: event.target.value }))
-                          }
-                        />
-                      </label>
-                      <div className="space-y-4">
-                        <Button className="w-full" type="submit" disabled={isAuthLoading}>
-                          {isAuthLoading ? "Processing" : "Sign In"}
-                        </Button>
-                        <NoticeCard notice={authNotice} />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsRegisterMode(true);
-                            setAuthNotice(null);
-                          }}
-                          className="text-sm text-zinc-500 transition-opacity duration-300 ease-soft hover:opacity-60"
-                        >
-                          Need an account? Create one
-                        </button>
-                      </div>
-                    </form>
-                  ) : (
-                    <form className="mt-8 space-y-4" onSubmit={handleRegister}>
-                      <label className="block text-sm text-zinc-600">
-                        Username
-                        <input
-                          className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition-colors duration-300 ease-soft focus:border-zinc-400"
-                          value={registration.username}
-                          onChange={(event) =>
-                            setRegistration((current) => ({ ...current, username: event.target.value }))
-                          }
-                        />
-                      </label>
-                      <label className="block text-sm text-zinc-600">
-                        Email
-                        <input
-                          type="email"
-                          className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition-colors duration-300 ease-soft focus:border-zinc-400"
-                          value={registration.email}
-                          onChange={(event) =>
-                            setRegistration((current) => ({ ...current, email: event.target.value }))
-                          }
-                        />
-                      </label>
-                      <label className="block text-sm text-zinc-600">
-                        Password
-                        <input
-                          type="password"
-                          className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition-colors duration-300 ease-soft focus:border-zinc-400"
-                          value={registration.password}
-                          onChange={(event) =>
-                            setRegistration((current) => ({ ...current, password: event.target.value }))
-                          }
-                        />
-                      </label>
-                      <div className="space-y-4">
-                        <Button className="w-full" type="submit" variant="secondary" disabled={isRegistering}>
-                          {isRegistering ? "Processing" : "Register"}
-                        </Button>
-                        <NoticeCard notice={authNotice} />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsRegisterMode(false);
-                            setAuthNotice(null);
-                          }}
-                          className="text-sm text-zinc-500 transition-opacity duration-300 ease-soft hover:opacity-60"
-                        >
-                          Back to sign in
-                        </button>
-                      </div>
-                    </form>
-                  )}
-                </>
-              ) : (
-                <div className="mt-6">
-                  <div className="flex items-center justify-between gap-4 rounded-[1.5rem] bg-zinc-50 px-5 py-4">
-                    <div className="min-w-0">
-                      <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Signed in</p>
-                      <p className="mt-2 truncate text-base font-medium text-zinc-900">
-                        {tokenState?.user.username}
-                      </p>
-                    </div>
-                    <Button type="button" variant="secondary" className="px-5 py-2.5" onClick={handleSignOut}>
-                      Sign Out
+              {!isRegisterMode ? (
+                <form className="mt-8 space-y-4" onSubmit={handleLogin}>
+                  <label className="block text-sm text-zinc-600">
+                    Username
+                    <input
+                      className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition-colors duration-300 ease-soft focus:border-zinc-400"
+                      value={credentials.username}
+                      onChange={(event) =>
+                        setCredentials((current) => ({ ...current, username: event.target.value }))
+                      }
+                    />
+                  </label>
+                  <label className="block text-sm text-zinc-600">
+                    Password
+                    <input
+                      type="password"
+                      className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition-colors duration-300 ease-soft focus:border-zinc-400"
+                      value={credentials.password}
+                      onChange={(event) =>
+                        setCredentials((current) => ({ ...current, password: event.target.value }))
+                      }
+                    />
+                  </label>
+                  <div className="space-y-4">
+                    <Button className="w-full" type="submit" disabled={isAuthLoading}>
+                      {isAuthLoading ? "Processing" : "Sign In"}
                     </Button>
+                    <NoticeCard notice={authNotice} />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsRegisterMode(true);
+                        setAuthNotice(null);
+                      }}
+                      className="text-sm text-zinc-500 transition-opacity duration-300 ease-soft hover:opacity-60"
+                    >
+                      Need an account? Create one
+                    </button>
                   </div>
-                </div>
+                </form>
+              ) : (
+                <form className="mt-8 space-y-4" onSubmit={handleRegister}>
+                  <label className="block text-sm text-zinc-600">
+                    Username
+                    <input
+                      className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition-colors duration-300 ease-soft focus:border-zinc-400"
+                      value={registration.username}
+                      onChange={(event) =>
+                        setRegistration((current) => ({ ...current, username: event.target.value }))
+                      }
+                    />
+                  </label>
+                  <label className="block text-sm text-zinc-600">
+                    Email
+                    <input
+                      type="email"
+                      className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition-colors duration-300 ease-soft focus:border-zinc-400"
+                      value={registration.email}
+                      onChange={(event) =>
+                        setRegistration((current) => ({ ...current, email: event.target.value }))
+                      }
+                    />
+                  </label>
+                  <label className="block text-sm text-zinc-600">
+                    Password
+                    <input
+                      type="password"
+                      className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition-colors duration-300 ease-soft focus:border-zinc-400"
+                      value={registration.password}
+                      onChange={(event) =>
+                        setRegistration((current) => ({ ...current, password: event.target.value }))
+                      }
+                    />
+                  </label>
+                  <div className="space-y-4">
+                    <Button className="w-full" type="submit" variant="secondary" disabled={isRegistering}>
+                      {isRegistering ? "Processing" : "Register"}
+                    </Button>
+                    <NoticeCard notice={authNotice} />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsRegisterMode(false);
+                        setAuthNotice(null);
+                      }}
+                      className="text-sm text-zinc-500 transition-opacity duration-300 ease-soft hover:opacity-60"
+                    >
+                      Back to sign in
+                    </button>
+                  </div>
+                </form>
               )}
             </div>
+            ) : null}
 
             <div className="rounded-[2rem] border border-zinc-200/60 bg-white p-8">
               <p className="text-sm font-medium text-zinc-500">Products</p>

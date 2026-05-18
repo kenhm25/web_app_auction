@@ -10,11 +10,11 @@ const navItems = [
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-zinc-200/60 bg-white/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 lg:px-10">
+      <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between lg:px-10">
         <NavLink className="text-sm font-semibold tracking-[0.24em] text-zinc-950" to="/">
           AUCTION SYSTEM
         </NavLink>
-        <nav className="flex items-center gap-6 text-sm text-zinc-500">
+        <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-zinc-500">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
