@@ -161,7 +161,7 @@ jobs:
           kubectl apply -f k8s/deployment.yaml
           kubectl apply -f k8s/frontend-service.yaml
           kubectl apply -f k8s/frontend-deployment.yaml
-          kubectl apply -f k8s/ingress.frontend-backend.suggested.yaml
+          kubectl apply -f k8s/ingress.yaml
 
       - name: Roll out immutable backend and frontend image versions
         run: |
