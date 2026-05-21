@@ -15,8 +15,8 @@ permissions:
 env:
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "22"
-  CLUSTER_NAME: auction-cluster-jp
-  CLUSTER_REGION: asia-northeast1
+  CLUSTER_NAME: auction-cluster
+  CLUSTER_REGION: asia-east1
   BACKEND_IMAGE_NAME: auction-api
   FRONTEND_IMAGE_NAME: auction-frontend
 
