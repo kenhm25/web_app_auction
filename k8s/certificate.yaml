@@ -1,0 +1,7 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: auction-managed-cert
+spec:
+  domains:
+    - ken-auction.duckdns.org

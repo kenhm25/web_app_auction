@@ -29,8 +29,22 @@ spec:
               gunicorn auctionsite.wsgi:application --bind 0.0.0.0:8000
 
           env:
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: django-secret
+                  key: SECRET_KEY
+                  
             - name: DB_HOST
               value: postgres
+              
+            - name: DEBUG
+              value: "False"
 
+            - name: ALLOWED_HOSTS
+              value: "ken-auction.duckdns.org"
+
+            - name: CSRF_TRUSTED_ORIGINS
+              value: "https://ken-auction.duckdns.org"
           ports:
             - containerPort: 8000

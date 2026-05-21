@@ -157,10 +157,14 @@ jobs:
           kubectl apply -f k8s/postgres-secret.yaml
           kubectl apply -f k8s/postgres-service.yaml
           kubectl apply -f k8s/postgres-statefulset.yaml
+          
           kubectl apply -f k8s/service.yaml
           kubectl apply -f k8s/deployment.yaml
+
           kubectl apply -f k8s/frontend-service.yaml
           kubectl apply -f k8s/frontend-deployment.yaml
+
+          kubectl apply -f k8s/certificate.yaml
           kubectl apply -f k8s/ingress.yaml
 
       - name: Roll out immutable backend and frontend image versions
