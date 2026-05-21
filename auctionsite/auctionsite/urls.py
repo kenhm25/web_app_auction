@@ -28,6 +28,7 @@ def health(request):
 
 urlpatterns = [
     path("", health),
+    path("healthz/", health),
     path('admin/', admin.site.urls),
     
     path("api/token/", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
