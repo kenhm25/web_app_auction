@@ -50,14 +50,10 @@ spec:
             - containerPort: 8000
           
           readinessProbe:
-            httpGet:
-              path: /healthz/
-              port: 8000
-            initialDelaySeconds: 5
-            periodSeconds: 5  
-          livenessProbe:
-            httpGet:
-              path: /healthz/
-              port: 8000
-            initialDelaySeconds: 15
-            periodSeconds: 10
+          httpGet:
+            path: /healthz/
+            port: 8000
+          initialDelaySeconds: 20
+          timeoutSeconds: 5
+          periodSeconds: 5 
+          
