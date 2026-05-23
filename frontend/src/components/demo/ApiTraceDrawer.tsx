@@ -65,6 +65,35 @@ function categoryBadgeClasses(category?: ApiTrace["category"]) {
   return "bg-zinc-100 text-zinc-600";
 }
 
+const sensitiveKeys = new Set([
+  "access",
+  "refresh",
+  "access_token",
+  "refresh_token",
+  "id_token",
+  "token",
+  "client_secret",
+  "code",
+  "authorization",
+]);
+
+function redactSensitiveValues(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => redactSensitiveValues(item));
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, nestedValue]) => [
+        key,
+        sensitiveKeys.has(key.toLowerCase()) ? "REDACTED" : redactSensitiveValues(nestedValue),
+      ]),
+    );
+  }
+
+  return value;
+}
+
 export function ApiTraceDrawer({
   title,
   description,
@@ -237,14 +266,14 @@ export function ApiTraceDrawer({
                       <section>
                         <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Payload</p>
                         <pre className="mt-3 overflow-x-auto rounded-xl bg-zinc-950 px-4 py-4 font-mono text-sm leading-relaxed text-zinc-100">
-                          {JSON.stringify(selectedTrace.payload ?? null, null, 2)}
+                          {JSON.stringify(redactSensitiveValues(selectedTrace.payload ?? null), null, 2)}
                         </pre>
                       </section>
 
                       <section>
                         <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Response</p>
                         <pre className="mt-3 overflow-x-auto rounded-xl bg-zinc-950 px-4 py-4 font-mono text-sm leading-relaxed text-zinc-100">
-                          {JSON.stringify(selectedTrace.response ?? null, null, 2)}
+                          {JSON.stringify(redactSensitiveValues(selectedTrace.response ?? null), null, 2)}
                         </pre>
                       </section>
                     </div>

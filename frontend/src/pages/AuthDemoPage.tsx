@@ -159,6 +159,9 @@ export function AuthDemoPage() {
 
   const isGoogleFlowComplete = authMethod === "google" && isAuthenticated;
   const isLocalSession = authMethod === "local" && isAuthenticated;
+  const authProviderLabel = idTokenClaims ? "Google OIDC" : isAuthenticated ? "Username/password" : "Guest";
+  const tokenExpiry =
+    typeof decodedAccessToken?.exp === "number" ? formatUnixTimestamp(decodedAccessToken.exp) : "Not provided";
   const authStatusItems = [
     ["Local credentials", isLocalSession ? "done" : "idle"],
     ["Google redirect", oidcStage === "prepared" ? "ready" : oidcStage === "redirecting" ? "active" : isGoogleFlowComplete ? "done" : "idle"],
@@ -485,12 +488,31 @@ export function AuthDemoPage() {
               <div className="mt-6 space-y-4">
                 {isAuthenticated ? (
                   <div className="rounded-[1.5rem] bg-zinc-50 p-5">
-                    <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Signed in as</p>
-                    <p className="mt-2 truncate text-lg font-semibold text-zinc-950">
-                      {tokenState?.user.username}
-                    </p>
-                    <p className="mt-2 truncate text-sm text-zinc-500">{tokenState?.user.email}</p>
-                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Session</p>
+                        <p className="mt-2 text-lg font-semibold text-zinc-950">
+                          {idTokenClaims ? "Signed in with Google" : "Signed in"}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                        active
+                      </span>
+                    </div>
+                    <dl className="mt-5 space-y-3 text-sm">
+                      {[
+                        ["Provider", authProviderLabel],
+                        ["Username", tokenState?.user.username || "Not provided"],
+                        ["Email", tokenState?.user.email || "Not provided"],
+                        ["Token expiry", tokenExpiry],
+                      ].map(([label, value]) => (
+                        <div key={label} className="flex items-start justify-between gap-4">
+                          <dt className="text-zinc-500">{label}</dt>
+                          <dd className="min-w-0 break-words text-right font-medium text-zinc-900">{value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                    <div className="mt-6 grid gap-3 sm:grid-cols-2">
                       <Button type="button" variant="secondary" onClick={handleSignOut}>
                         Sign Out
                       </Button>

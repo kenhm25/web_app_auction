@@ -135,6 +135,7 @@ class GoogleOAuthStartAPIView(APIView):
             "redirect_uri": config["redirect_uri"],
             "response_type": "code",
             "scope": "openid email profile",
+            "prompt": "consent",
             "state": state,
         }
 
