@@ -40,6 +40,9 @@ const initialRegistration = {
   password: "",
 };
 
+const inputClasses =
+  "mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 shadow-sm outline-none transition-all duration-300 ease-soft placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white focus:ring-4 focus:ring-zinc-950/5";
+
 function ArrowRightIcon() {
   return (
     <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -85,11 +88,22 @@ function NoticeCard({ notice }: { notice: InlineNotice }) {
   return (
     <div
       className={[
-        "rounded-[1.5rem] border px-5 py-4",
-        notice.tone === "error" ? "border-zinc-300 bg-zinc-50" : "border-zinc-200/80 bg-zinc-50/80",
+        "rounded-[1.5rem] border px-5 py-4 shadow-sm",
+        notice.tone === "error"
+          ? "border-red-100 bg-red-50"
+          : notice.tone === "success"
+            ? "border-emerald-100 bg-emerald-50"
+            : "border-blue-100 bg-blue-50",
       ].join(" ")}
     >
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">{notice.title}</p>
+      <p
+        className={[
+          "text-xs font-semibold uppercase tracking-[0.24em]",
+          notice.tone === "error" ? "text-red-500" : notice.tone === "success" ? "text-emerald-600" : "text-blue-600",
+        ].join(" ")}
+      >
+        {notice.title}
+      </p>
       <p className="mt-2 text-sm leading-7 text-zinc-700">{notice.message}</p>
     </div>
   );
@@ -457,22 +471,22 @@ export function AuthDemoPage() {
         onSelectTrace={setSelectedTraceId}
       />
 
-      <Section className="!pb-14 !pt-8 sm:!py-10 lg:!py-12">
-        <div className="mx-auto space-y-5">
-          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+      <Section className="!pb-16 !pt-10 sm:!py-14 lg:!py-16 bg-zinc-50/70">
+        <div className="mx-auto space-y-7">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.34em] text-zinc-500">Auth Showcase</p>
-              <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-zinc-950 sm:text-4xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.34em] text-blue-600">Auth Showcase</p>
+              <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-zinc-950 sm:text-5xl">
                 Authentication control center.
               </h1>
             </div>
-            <div className="rounded-full bg-zinc-100 px-4 py-2 text-xs uppercase tracking-[0.24em] text-zinc-500">
+            <div className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs uppercase tracking-[0.24em] text-zinc-600 shadow-sm">
               {isAuthenticated ? "Stateless JWT" : "Guest"}
             </div>
           </div>
 
           <div className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="rounded-[2rem] border border-zinc-200/60 bg-white p-6">
+            <div className="rounded-[2rem] border border-zinc-200/70 bg-white p-6 shadow-soft sm:p-7">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-sm font-medium text-zinc-500">Authentication control</p>
@@ -480,14 +494,14 @@ export function AuthDemoPage() {
                     {isAuthenticated ? "Backend-issued JWT ready" : "Sign in"}
                   </h2>
                 </div>
-                <div className="rounded-full bg-zinc-100 px-4 py-2 text-xs uppercase tracking-[0.24em] text-zinc-500">
+                <div className="rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-xs uppercase tracking-[0.24em] text-zinc-600">
                   {isAuthenticated ? "active" : "guest"}
                 </div>
               </div>
 
               <div className="mt-6 space-y-4">
                 {isAuthenticated ? (
-                  <div className="rounded-[1.5rem] bg-zinc-50 p-5">
+                  <div className="rounded-[1.5rem] border border-zinc-200/70 bg-zinc-50 p-5 shadow-sm">
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Session</p>
@@ -513,12 +527,12 @@ export function AuthDemoPage() {
                       ))}
                     </dl>
                     <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                      <Button type="button" variant="secondary" onClick={handleSignOut}>
+                      <Button type="button" variant="secondary" className="hover:border-zinc-300 hover:bg-white hover:shadow-sm" onClick={handleSignOut}>
                         Sign Out
                       </Button>
                       <Link
                         to="/demo/app"
-                        className="inline-flex items-center justify-center rounded-full bg-zinc-950 px-6 py-3 text-sm font-medium text-white transition-all duration-300 ease-soft hover:opacity-90"
+                        className="inline-flex items-center justify-center rounded-full bg-zinc-950 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all duration-300 ease-soft hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md"
                       >
                         Open Auction App
                       </Link>
@@ -532,7 +546,7 @@ export function AuthDemoPage() {
                           Username or email
                           <input
                             aria-label="Username or email"
-                            className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition-colors duration-300 ease-soft focus:border-zinc-400"
+                            className={inputClasses}
                             value={credentials.username}
                             onChange={(event) =>
                               setCredentials((current) => ({ ...current, username: event.target.value }))
@@ -544,14 +558,14 @@ export function AuthDemoPage() {
                           <input
                             aria-label="Password"
                             type="password"
-                            className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition-colors duration-300 ease-soft focus:border-zinc-400"
+                            className={inputClasses}
                             value={credentials.password}
                             onChange={(event) =>
                               setCredentials((current) => ({ ...current, password: event.target.value }))
                             }
                           />
                         </label>
-                        <Button className="w-full" type="submit" disabled={isAuthLoading}>
+                        <Button className="w-full shadow-sm hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md disabled:translate-y-0 disabled:opacity-60" type="submit" disabled={isAuthLoading}>
                           {isAuthLoading ? "Processing" : "Sign In"}
                         </Button>
                       </form>
@@ -561,7 +575,7 @@ export function AuthDemoPage() {
                           Username
                           <input
                             aria-label="Register username"
-                            className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition-colors duration-300 ease-soft focus:border-zinc-400"
+                            className={inputClasses}
                             value={registration.username}
                             onChange={(event) =>
                               setRegistration((current) => ({ ...current, username: event.target.value }))
@@ -573,7 +587,7 @@ export function AuthDemoPage() {
                           <input
                             aria-label="Register email"
                             type="email"
-                            className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition-colors duration-300 ease-soft focus:border-zinc-400"
+                            className={inputClasses}
                             value={registration.email}
                             onChange={(event) =>
                               setRegistration((current) => ({ ...current, email: event.target.value }))
@@ -585,14 +599,14 @@ export function AuthDemoPage() {
                           <input
                             aria-label="Register password"
                             type="password"
-                            className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition-colors duration-300 ease-soft focus:border-zinc-400"
+                            className={inputClasses}
                             value={registration.password}
                             onChange={(event) =>
                               setRegistration((current) => ({ ...current, password: event.target.value }))
                             }
                           />
                         </label>
-                        <Button className="w-full" type="submit" disabled={isRegistering}>
+                        <Button className="w-full shadow-sm hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md disabled:translate-y-0 disabled:opacity-60" type="submit" disabled={isRegistering}>
                           {isRegistering ? "Processing" : "Create Account"}
                         </Button>
                       </form>
@@ -604,7 +618,7 @@ export function AuthDemoPage() {
                         setIsRegisterMode((current) => !current);
                         setAuthNotice(null);
                       }}
-                      className="text-sm text-zinc-500 transition-opacity duration-300 ease-soft hover:opacity-60"
+                      className="text-sm font-medium text-zinc-500 transition-colors duration-300 ease-soft hover:text-zinc-950"
                     >
                       {isRegisterMode ? "Already have an account? Sign in" : "Need an account? Create one"}
                     </button>
@@ -616,12 +630,12 @@ export function AuthDemoPage() {
                     </div>
 
                     {oidcStage === "prepared" ? (
-                      <Button type="button" className="w-full gap-3 border-blue-100 bg-blue-50 text-blue-800 hover:bg-blue-100" variant="secondary" onClick={handleContinueToGoogle}>
+                      <Button type="button" className="w-full gap-3 border-blue-100 bg-blue-50 text-blue-800 shadow-sm hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-100 hover:shadow-md" variant="secondary" onClick={handleContinueToGoogle}>
                         Continue to Google
                         <ArrowRightIcon />
                       </Button>
                     ) : (
-                      <Button type="button" className="w-full gap-3" variant="secondary" onClick={handleGoogleLogin}>
+                      <Button type="button" className="w-full gap-3 shadow-sm hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md" variant="secondary" onClick={handleGoogleLogin}>
                         <GoogleIcon />
                         Sign in with Google
                       </Button>
@@ -632,7 +646,7 @@ export function AuthDemoPage() {
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-zinc-200/60 bg-white p-6">
+            <div className="rounded-[2rem] border border-zinc-200/70 bg-white p-6 shadow-soft sm:p-7">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-sm font-medium text-zinc-500">Flow status</p>
@@ -662,7 +676,7 @@ export function AuthDemoPage() {
                 {authStatusItems.map(([label, state]) => (
                   <div
                     key={label}
-                    className="flex items-center justify-between gap-4 rounded-[1.1rem] bg-zinc-50 px-4 py-3"
+                    className="flex items-center justify-between gap-4 rounded-[1.1rem] border border-transparent bg-zinc-50 px-4 py-3 transition-all duration-300 ease-soft hover:border-zinc-200 hover:bg-white hover:shadow-sm"
                   >
                     <div className="flex items-center gap-3">
                       <span
@@ -693,7 +707,7 @@ export function AuthDemoPage() {
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-zinc-200/60 bg-white p-6">
+          <div className="rounded-[2rem] border border-zinc-200/70 bg-white p-6 shadow-soft sm:p-7">
             <div>
               <p className="text-sm font-medium text-zinc-500">Token inspector</p>
               <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-zinc-950">
@@ -702,7 +716,7 @@ export function AuthDemoPage() {
             </div>
 
             <div className="mt-5 grid gap-5 lg:grid-cols-2">
-              <div className="rounded-[1.5rem] bg-zinc-50 p-5">
+              <div className="rounded-[1.5rem] border border-zinc-200/70 bg-zinc-50 p-5">
                 <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Google ID token claims</p>
                 <div className="mt-4 grid gap-3 text-sm">
                   {[
@@ -720,7 +734,7 @@ export function AuthDemoPage() {
                 </div>
               </div>
 
-              <div className="rounded-[1.5rem] bg-zinc-50 p-5">
+              <div className="rounded-[1.5rem] border border-zinc-200/70 bg-zinc-50 p-5">
                 <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Backend-issued JWT</p>
                 <div className="mt-4 grid gap-3 text-sm">
                   {[

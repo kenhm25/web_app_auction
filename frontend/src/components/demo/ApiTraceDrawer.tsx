@@ -106,6 +106,41 @@ export function ApiTraceDrawer({
 }: ApiTraceDrawerProps) {
   return (
     <>
+      <style>
+        {`
+          @keyframes api-drawer-enter {
+            from {
+              opacity: 0;
+              transform: translateX(18px) scale(0.985);
+            }
+            to {
+              opacity: 1;
+              transform: translateX(0) scale(1);
+            }
+          }
+
+          @keyframes api-detail-enter {
+            from {
+              opacity: 0;
+              transform: translateY(10px);
+              filter: blur(3px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+              filter: blur(0);
+            }
+          }
+
+          @media (prefers-reduced-motion: reduce) {
+            .api-drawer-enter,
+            .api-detail-enter {
+              animation: none;
+            }
+          }
+        `}
+      </style>
+
       <div className="pointer-events-none fixed inset-x-0 top-0 z-40 h-0">
         <div className="pointer-events-auto absolute right-6 top-20">
           <button
@@ -126,14 +161,16 @@ export function ApiTraceDrawer({
       </div>
 
       {isOpen ? (
-        <aside
-          id="api-trace-panel"
-          className="fixed right-3 top-3 z-30 h-[calc(100%-1.5rem)] w-[min(48rem,calc(100vw-1.5rem))] rounded-2xl border border-zinc-200 bg-white px-6 py-7 transition-transform duration-300 ease-in-out"
-        >
+        <>
+          <div className="fixed inset-0 z-20 bg-zinc-950/10 backdrop-blur-[2px] sm:hidden" onClick={onToggle} />
+          <aside
+            id="api-trace-panel"
+            className="api-drawer-enter fixed inset-x-2 top-3 z-30 h-[calc(100%-1.5rem)] rounded-[1.75rem] border border-zinc-200/80 bg-white/95 px-5 py-6 shadow-[0_24px_80px_rgba(24,24,27,0.16)] backdrop-blur-xl sm:inset-x-auto sm:right-3 sm:w-[min(48rem,calc(100vw-1.5rem))] sm:px-6 sm:py-7"
+          >
           <div className="flex h-full flex-col">
             <div className="flex items-start justify-between gap-4 pb-5">
               <div>
-                <p className="text-sm font-medium text-zinc-500">{title}</p>
+                <p className="text-sm font-semibold text-zinc-700">{title}</p>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-600">{description}</p>
               </div>
               <div className="w-16" />
@@ -147,7 +184,7 @@ export function ApiTraceDrawer({
                     <button
                       type="button"
                       onClick={onRefresh}
-                      className="text-sm text-zinc-500 transition-opacity duration-300 ease-in-out hover:opacity-60"
+                      className="rounded-full border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-500 shadow-sm transition-colors transition-transform duration-300 ease-soft hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-950 active:scale-[0.96]"
                     >
                       Refresh data
                     </button>
@@ -160,7 +197,7 @@ export function ApiTraceDrawer({
                       key={trace.id}
                       type="button"
                       onClick={() => onSelectTrace(trace.id)}
-                      className="w-full rounded-[1.25rem] border border-zinc-200 bg-zinc-50 px-4 py-4 text-left text-zinc-900 transition-all duration-300 ease-in-out hover:bg-zinc-100"
+                      className="w-full rounded-[1.25rem] border border-zinc-200/80 bg-zinc-50 px-4 py-4 text-left text-zinc-900 shadow-sm transition-transform transition-colors duration-300 ease-soft hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-white hover:shadow-md active:scale-[0.99]"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
@@ -185,14 +222,14 @@ export function ApiTraceDrawer({
                               {trace.title}
                             </span>
                           </div>
-                          <p className="mt-3 truncate text-sm font-medium">{trace.url}</p>
+                          <p className="mt-3 truncate text-base font-semibold tracking-[-0.02em]">{trace.url}</p>
                           {trace.summary ? (
                             <p className="mt-2 line-clamp-2 text-sm leading-6 text-zinc-500">{trace.summary}</p>
                           ) : null}
                         </div>
                         <div
                           className={[
-                            "inline-flex rounded-full px-3 py-1 text-xs font-medium",
+                            "inline-flex rounded-full px-3 py-1 text-xs font-semibold tabular-nums",
                             statusBadgeClasses(trace.status),
                           ].join(" ")}
                         >
@@ -229,7 +266,7 @@ export function ApiTraceDrawer({
                 </div>
 
                 <div className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
-                  <div className="rounded-xl bg-zinc-50 px-5 py-5">
+                  <div key={selectedTrace.id} className="api-detail-enter rounded-[1.5rem] border border-zinc-200/70 bg-zinc-50/80 px-5 py-5 shadow-sm">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
@@ -263,17 +300,23 @@ export function ApiTraceDrawer({
                     </div>
 
                     <div className="mt-6 space-y-6">
-                      <section>
-                        <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Payload</p>
-                        <pre className="mt-3 overflow-x-auto rounded-xl bg-zinc-950 px-4 py-4 font-mono text-sm leading-relaxed text-zinc-100">
-                          {JSON.stringify(redactSensitiveValues(selectedTrace.payload ?? null), null, 2)}
+                      <section className="rounded-[1.25rem] border border-zinc-200/70 bg-white p-4 shadow-sm">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">Payload</p>
+                          <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-medium text-zinc-500">request</span>
+                        </div>
+                        <pre className="mt-3 overflow-x-auto rounded-xl bg-zinc-950 px-4 py-4 font-mono text-sm leading-relaxed text-zinc-100 shadow-inner">
+                          <code>{JSON.stringify(redactSensitiveValues(selectedTrace.payload ?? null), null, 2)}</code>
                         </pre>
                       </section>
 
-                      <section>
-                        <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Response</p>
-                        <pre className="mt-3 overflow-x-auto rounded-xl bg-zinc-950 px-4 py-4 font-mono text-sm leading-relaxed text-zinc-100">
-                          {JSON.stringify(redactSensitiveValues(selectedTrace.response ?? null), null, 2)}
+                      <section className="rounded-[1.25rem] border border-blue-100 bg-blue-50/50 p-4 shadow-sm">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-500">Response</p>
+                          <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-blue-600">backend</span>
+                        </div>
+                        <pre className="mt-3 overflow-x-auto rounded-xl bg-zinc-950 px-4 py-4 font-mono text-sm leading-relaxed text-zinc-100 shadow-inner">
+                          <code>{JSON.stringify(redactSensitiveValues(selectedTrace.response ?? null), null, 2)}</code>
                         </pre>
                       </section>
                     </div>
@@ -282,7 +325,8 @@ export function ApiTraceDrawer({
               </>
             )}
           </div>
-        </aside>
+          </aside>
+        </>
       ) : null}
     </>
   );

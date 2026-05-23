@@ -1,7 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { SiteFooter } from "./components/layout/SiteFooter";
 import { SiteHeader } from "./components/layout/SiteHeader";
-import { ArchitecturePage } from "./pages/ArchitecturePage";
 import { AuctionDemoPage } from "./pages/AuctionDemoPage";
 import { AuthDemoPage } from "./pages/AuthDemoPage";
 import { DemoPage } from "./pages/DemoPage";
@@ -21,7 +20,6 @@ export default function App() {
             <Route path="/demo/auth" element={<AuthDemoPage />} />
             <Route path="/demo/app" element={<AuctionDemoPage />} />
             <Route path="/race-condition" element={<RaceConditionPage />} />
-            <Route path="/architecture" element={<ArchitecturePage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

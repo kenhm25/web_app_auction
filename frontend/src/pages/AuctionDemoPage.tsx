@@ -26,6 +26,9 @@ const initialProduct: CreateProductPayload = {
   location: "",
 };
 
+const inputClasses =
+  "w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 shadow-sm outline-none transition-all duration-300 ease-soft placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-4 focus:ring-zinc-950/5";
+
 function NoticeCard({ notice }: { notice: InlineNotice }) {
   if (!notice) {
     return null;
@@ -34,11 +37,22 @@ function NoticeCard({ notice }: { notice: InlineNotice }) {
   return (
     <div
       className={[
-        "rounded-[1.5rem] border px-5 py-4",
-        notice.tone === "error" ? "border-zinc-300 bg-zinc-50" : "border-zinc-200/80 bg-zinc-50/80",
+        "rounded-[1.5rem] border px-5 py-4 shadow-sm",
+        notice.tone === "error"
+          ? "border-red-100 bg-red-50"
+          : notice.tone === "success"
+            ? "border-emerald-100 bg-emerald-50"
+            : "border-blue-100 bg-blue-50",
       ].join(" ")}
     >
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">{notice.title}</p>
+      <p
+        className={[
+          "text-xs font-semibold uppercase tracking-[0.24em]",
+          notice.tone === "error" ? "text-red-500" : notice.tone === "success" ? "text-emerald-600" : "text-blue-600",
+        ].join(" ")}
+      >
+        {notice.title}
+      </p>
       <p className="mt-2 text-sm leading-7 text-zinc-700">{notice.message}</p>
     </div>
   );
@@ -263,11 +277,11 @@ export function AuctionDemoPage() {
         onRefresh={() => void loadProducts()}
       />
 
-      <Section className="pt-16 sm:pt-20">
-        <div className="mx-auto space-y-12">
-          <div className="flex flex-col justify-between gap-6 rounded-[2rem] border border-zinc-200/60 bg-white p-8 sm:p-10 lg:flex-row lg:items-end">
+      <Section className="pt-16 sm:pt-20 bg-zinc-50/70">
+        <div className="mx-auto space-y-10">
+          <div className="flex flex-col justify-between gap-6 rounded-[2rem] border border-zinc-200/70 bg-white p-8 shadow-soft sm:p-10 lg:flex-row lg:items-end">
             <div className="max-w-3xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.34em] text-zinc-500">Auction App</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.34em] text-blue-600">Auction App</p>
               <h1 className="mt-6 text-5xl font-semibold tracking-[-0.05em] text-zinc-950 sm:text-6xl">
                 A small marketplace backed by JWT auth.
               </h1>
@@ -276,7 +290,7 @@ export function AuctionDemoPage() {
               </p>
             </div>
 
-            <div className="w-full rounded-[1.5rem] bg-zinc-50 p-5 lg:max-w-xs">
+            <div className="w-full rounded-[1.5rem] border border-zinc-200/70 bg-zinc-50 p-5 shadow-sm lg:max-w-xs">
               <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Session</p>
               <p className="mt-2 text-lg font-semibold text-zinc-950">
                 {isAuthenticated ? "Authenticated" : "Guest mode"}
@@ -306,7 +320,7 @@ export function AuctionDemoPage() {
               {!isAuthenticated ? (
                 <Link
                   to="/demo/auth"
-                  className="mt-5 inline-flex w-full items-center justify-center rounded-full bg-zinc-950 px-6 py-3 text-sm font-medium text-white transition-all duration-300 ease-soft hover:opacity-90"
+                  className="mt-5 inline-flex w-full items-center justify-center rounded-full bg-zinc-950 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all duration-300 ease-soft hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md"
                 >
                   Open Auth Showcase
                 </Link>
@@ -316,7 +330,7 @@ export function AuctionDemoPage() {
 
           <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr]">
             <div className="space-y-8">
-              <div className="rounded-[2rem] border border-zinc-200/60 bg-white p-8">
+              <div className="rounded-[2rem] border border-zinc-200/70 bg-white p-7 shadow-soft sm:p-8">
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm font-medium text-zinc-500">Products</p>
@@ -340,8 +354,8 @@ export function AuctionDemoPage() {
                         className={[
                           "w-full rounded-[1.5rem] border px-5 py-4 text-left transition-all duration-300 ease-soft",
                           isSelected
-                            ? "border-zinc-950 bg-zinc-950 text-white"
-                            : "border-zinc-200 bg-zinc-50 text-zinc-800 hover:bg-zinc-100",
+                            ? "border-zinc-950 bg-zinc-950 text-white shadow-md"
+                            : "border-zinc-200 bg-zinc-50 text-zinc-800 hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-white hover:shadow-sm",
                         ].join(" ")}
                       >
                         <p className="text-sm font-semibold">{product.title}</p>
@@ -363,13 +377,13 @@ export function AuctionDemoPage() {
               </div>
 
               {isAuthenticated ? (
-                <div className="rounded-[2rem] border border-zinc-200/60 bg-white p-8">
+                <div className="rounded-[2rem] border border-zinc-200/70 bg-white p-7 shadow-soft sm:p-8">
                   <p className="text-sm font-medium text-zinc-500">Create product</p>
                   <form className="mt-6 space-y-4" onSubmit={handleCreateProduct}>
                     <input
                       aria-label="Title"
                       placeholder="Title"
-                      className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition-colors duration-300 ease-soft focus:border-zinc-400"
+                      className={inputClasses}
                       value={productForm.title}
                       onChange={(event) =>
                         setProductForm((current) => ({ ...current, title: event.target.value }))
@@ -378,7 +392,7 @@ export function AuctionDemoPage() {
                     <textarea
                       aria-label="Description"
                       placeholder="Description"
-                      className="min-h-[120px] w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition-colors duration-300 ease-soft focus:border-zinc-400"
+                      className={`${inputClasses} min-h-[120px]`}
                       value={productForm.description}
                       onChange={(event) =>
                         setProductForm((current) => ({ ...current, description: event.target.value }))
@@ -389,7 +403,7 @@ export function AuctionDemoPage() {
                         aria-label="Starting bid"
                         inputMode="decimal"
                         placeholder="Starting bid"
-                        className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition-colors duration-300 ease-soft focus:border-zinc-400"
+                        className={inputClasses}
                         value={productForm.starting_bid}
                         onChange={(event) =>
                           setProductForm((current) => ({ ...current, starting_bid: event.target.value }))
@@ -398,7 +412,7 @@ export function AuctionDemoPage() {
                       <input
                         aria-label="Location"
                         placeholder="Location"
-                        className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition-colors duration-300 ease-soft focus:border-zinc-400"
+                        className={inputClasses}
                         value={productForm.location}
                         onChange={(event) =>
                           setProductForm((current) => ({ ...current, location: event.target.value }))
@@ -408,13 +422,13 @@ export function AuctionDemoPage() {
                     <input
                       aria-label="Image URL"
                       placeholder="Image URL"
-                      className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition-colors duration-300 ease-soft focus:border-zinc-400"
+                      className={inputClasses}
                       value={productForm.image_url}
                       onChange={(event) =>
                         setProductForm((current) => ({ ...current, image_url: event.target.value }))
                       }
                     />
-                    <Button className="w-full" type="submit" disabled={isCreatingProduct}>
+                    <Button className="w-full shadow-sm hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md disabled:translate-y-0 disabled:opacity-60" type="submit" disabled={isCreatingProduct}>
                       {isCreatingProduct ? "Processing" : "Create Product"}
                     </Button>
                     <NoticeCard notice={productNotice} />
@@ -423,7 +437,7 @@ export function AuctionDemoPage() {
               ) : null}
             </div>
 
-            <div className="rounded-[2rem] border border-zinc-200/60 bg-white p-8">
+            <div className="rounded-[2rem] border border-zinc-200/70 bg-white p-7 shadow-soft sm:p-8">
               <p className="text-sm font-medium text-zinc-500">Selected listing</p>
               {selectedProduct ? (
                 <div className="mt-6 space-y-8">
@@ -434,7 +448,7 @@ export function AuctionDemoPage() {
                       </h2>
                       <p className="mt-4 text-base leading-8 text-zinc-600">{selectedProduct.description}</p>
                     </div>
-                    <div className="rounded-[1.5rem] bg-zinc-950 px-6 py-5 text-white">
+                    <div className="rounded-[1.5rem] bg-zinc-950 px-6 py-5 text-white shadow-md">
                       <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Highest bid</p>
                       <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">
                         {selectedProduct.current_highest_bid}
@@ -443,7 +457,7 @@ export function AuctionDemoPage() {
                   </div>
 
                   {shouldShowImage ? (
-                    <div className="overflow-hidden rounded-[1.75rem] bg-zinc-50">
+                    <div className="overflow-hidden rounded-[1.75rem] border border-zinc-200/70 bg-zinc-50 shadow-sm">
                       <img
                         src={selectedProduct.image_url}
                         alt={selectedProduct.title}
@@ -459,29 +473,29 @@ export function AuctionDemoPage() {
                   ) : null}
 
                   <div className="grid gap-4 sm:grid-cols-3">
-                    <div className="rounded-[1.5rem] bg-zinc-50 p-5">
+                    <div className="rounded-[1.5rem] border border-zinc-200/70 bg-zinc-50 p-5">
                       <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Location</p>
                       <p className="mt-3 text-lg font-medium text-zinc-900">{selectedProduct.location}</p>
                     </div>
-                    <div className="rounded-[1.5rem] bg-zinc-50 p-5">
+                    <div className="rounded-[1.5rem] border border-zinc-200/70 bg-zinc-50 p-5">
                       <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Starting bid</p>
                       <p className="mt-3 text-lg font-medium text-zinc-900">{selectedProduct.starting_bid}</p>
                     </div>
-                    <div className="rounded-[1.5rem] bg-zinc-50 p-5">
+                    <div className="rounded-[1.5rem] border border-zinc-200/70 bg-zinc-50 p-5">
                       <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Seller</p>
                       <p className="mt-3 text-lg font-medium text-zinc-900">#{selectedProduct.seller}</p>
                     </div>
                   </div>
 
                   {!isAuthenticated ? (
-                    <div className="rounded-[1.5rem] border border-zinc-200/80 bg-zinc-50/80 px-5 py-4">
+                    <div className="rounded-[1.5rem] border border-blue-100 bg-blue-50 px-5 py-4">
                       <p className="text-sm leading-7 text-zinc-600">
                         Sign in from the Auth Showcase to place bids and create products with the backend JWT session.
                       </p>
                     </div>
                   ) : (
                     <form
-                      className="rounded-[1.75rem] border border-zinc-200/70 bg-zinc-50 p-5"
+                      className="rounded-[1.75rem] border border-zinc-200/70 bg-zinc-50 p-5 shadow-sm"
                       onSubmit={handleBid}
                     >
                       <div className="flex flex-col gap-4 sm:flex-row">
@@ -489,11 +503,11 @@ export function AuctionDemoPage() {
                           aria-label="Bid amount"
                           inputMode="decimal"
                           placeholder="200.00"
-                          className="min-w-0 flex-1 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-950 outline-none transition-colors duration-300 ease-soft focus:border-zinc-400"
+                          className={`${inputClasses} min-w-0 flex-1`}
                           value={bidAmount}
                           onChange={(event) => setBidAmount(event.target.value)}
                         />
-                        <Button type="submit" disabled={isBidding}>
+                        <Button className="shadow-sm hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md disabled:translate-y-0 disabled:opacity-60" type="submit" disabled={isBidding}>
                           {isBidding ? "Processing" : "Place Bid"}
                         </Button>
                       </div>

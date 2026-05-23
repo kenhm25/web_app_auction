@@ -94,6 +94,22 @@ function resultClasses(tone: ScenarioSnapshot["resultTone"]) {
   return "border-zinc-200 bg-zinc-50 text-zinc-700";
 }
 
+function timelineCardClasses(side?: UserSide) {
+  if (side === "A") {
+    return "border-blue-100 bg-blue-50/80 text-blue-950 shadow-[0_18px_45px_rgba(37,99,235,0.12)]";
+  }
+
+  if (side === "B") {
+    return "border-emerald-100 bg-emerald-50/80 text-emerald-950 shadow-[0_18px_45px_rgba(5,150,105,0.12)]";
+  }
+
+  return "border-zinc-200/70 bg-white text-zinc-950 shadow-soft";
+}
+
+function compactTimelineText(text: string) {
+  return text.replace(/^\[[^\]]+\]\s*/, "");
+}
+
 function UserCard({
   label,
   user,
@@ -102,9 +118,14 @@ function UserCard({
   user: UserState;
 }) {
   return (
-    <article className="rounded-[2rem] border border-zinc-200/70 bg-white p-6">
+    <article
+      className={[
+        "rounded-[2rem] border p-6 shadow-soft transition-transform duration-300 ease-soft hover:-translate-y-0.5",
+        label.includes("A") ? "border-blue-100 bg-blue-50/70" : "border-emerald-100 bg-emerald-50/70",
+      ].join(" ")}
+    >
       <p className="text-xs font-semibold uppercase tracking-[0.34em] text-zinc-400">{label}</p>
-      <p className="mt-6 text-3xl font-semibold tracking-[-0.04em] text-zinc-950">
+      <p className="mt-6 text-3xl font-semibold tracking-[-0.04em] tabular-nums text-zinc-950">
         {user.amount.toLocaleString()}
       </p>
       <div className="mt-6 flex flex-col items-start gap-3">
@@ -250,23 +271,9 @@ function buildScenario(mode: Mode): ScenarioStep[] {
     },
     {
       at: STEP_INTERVAL,
-      text: "[12:00:01.203] SELECT ... FOR UPDATE",
+      text: "User A requests and acquires row lock (SELECT FOR UPDATE)",
       update: () => ({
-        timeline: { at: STEP_INTERVAL, text: "[12:00:01.203] SELECT ... FOR UPDATE", side: "A" },
-        snapshot: {
-          ...baseSnapshot,
-          resultTitle: "Row-level lock requested",
-          resultBody: "PostgreSQL is asked to place an exclusive lock on the highest bid row before reading it.",
-          lockState: "SELECT ... FOR UPDATE",
-          rowState: "Pending exclusive row lock",
-        },
-      }),
-    },
-    {
-      at: STEP_INTERVAL * 2,
-      text: "[12:00:01.204] Lock acquired by User A",
-      update: () => ({
-        timeline: { at: STEP_INTERVAL * 2, text: "[12:00:01.204] Lock acquired by User A", side: "A" },
+        timeline: { at: STEP_INTERVAL, text: "User A requests and acquires row lock (SELECT FOR UPDATE)", side: "A" },
         users: {
           A: { status: "Lock acquired", accent: "active", loading: true },
         },
@@ -280,10 +287,10 @@ function buildScenario(mode: Mode): ScenarioStep[] {
       }),
     },
     {
-      at: STEP_INTERVAL * 3,
+      at: STEP_INTERVAL * 2,
       text: "[12:00:01.205] User B request received",
       update: () => ({
-        timeline: { at: STEP_INTERVAL * 3, text: "[12:00:01.205] User B request received", side: "B" },
+        timeline: { at: STEP_INTERVAL * 2, text: "[12:00:01.205] User B request received", side: "B" },
         users: {
           B: { status: "Waiting for row lock...", accent: "waiting", loading: true },
         },
@@ -297,10 +304,10 @@ function buildScenario(mode: Mode): ScenarioStep[] {
       }),
     },
     {
-      at: STEP_INTERVAL * 4,
+      at: STEP_INTERVAL * 3,
       text: "[12:00:01.206] User B blocked until commit",
       update: () => ({
-        timeline: { at: STEP_INTERVAL * 4, text: "[12:00:01.206] User B blocked until commit", side: "B" },
+        timeline: { at: STEP_INTERVAL * 3, text: "[12:00:01.206] User B blocked until commit", side: "B" },
         snapshot: {
           ...baseSnapshot,
           resultTitle: "Write path serialized",
@@ -311,10 +318,10 @@ function buildScenario(mode: Mode): ScenarioStep[] {
       }),
     },
     {
-      at: STEP_INTERVAL * 5,
+      at: STEP_INTERVAL * 4,
       text: "[12:00:02.001] Transaction committed by User A",
       update: () => ({
-        timeline: { at: STEP_INTERVAL * 5, text: "[12:00:02.001] Transaction committed by User A", side: "A" },
+        timeline: { at: STEP_INTERVAL * 4, text: "[12:00:02.001] Transaction committed by User A", side: "A" },
         users: {
           A: { status: "Committed 25000", accent: "success", loading: false },
         },
@@ -329,10 +336,10 @@ function buildScenario(mode: Mode): ScenarioStep[] {
       }),
     },
     {
-      at: STEP_INTERVAL * 6,
+      at: STEP_INTERVAL * 5,
       text: "[12:00:02.002] User B resumed, reads highest bid = 25000",
       update: () => ({
-        timeline: { at: STEP_INTERVAL * 6, text: "[12:00:02.002] User B resumed, reads highest bid = 25000", side: "B" },
+        timeline: { at: STEP_INTERVAL * 5, text: "[12:00:02.002] User B resumed, reads highest bid = 25000", side: "B" },
         users: {
           B: { status: "Resumed after lock", accent: "active", loading: true },
         },
@@ -347,10 +354,10 @@ function buildScenario(mode: Mode): ScenarioStep[] {
       }),
     },
     {
-      at: STEP_INTERVAL * 7,
+      at: STEP_INTERVAL * 6,
       text: "[12:00:02.403] User B commits 26000",
       update: () => ({
-        timeline: { at: STEP_INTERVAL * 7, text: "[12:00:02.403] User B commits 26000", side: "B" },
+        timeline: { at: STEP_INTERVAL * 6, text: "[12:00:02.403] User B commits 26000", side: "B" },
         users: {
           B: { status: "Committed 26000", accent: "success", loading: false },
         },
@@ -415,22 +422,49 @@ export function RaceConditionPage() {
   }, [scenario, runId]);
 
   return (
-    <Section className="pt-16 sm:pt-20">
-      <div className="mx-auto space-y-16">
+    <Section className="pt-16 sm:pt-20 bg-zinc-50/70">
+      <style>
+        {`
+          @keyframes race-card-enter {
+            0% {
+              opacity: 0;
+              transform: translateY(18px) scale(0.97);
+              filter: blur(4px);
+            }
+            100% {
+              opacity: 1;
+              transform: translateY(0) scale(1);
+              filter: blur(0);
+            }
+          }
+
+          .race-timeline-card {
+            animation: race-card-enter 620ms cubic-bezier(0.2, 0, 0, 1) both;
+            will-change: transform, opacity, filter;
+          }
+
+          @media (prefers-reduced-motion: reduce) {
+            .race-timeline-card {
+              animation: none;
+              opacity: 1;
+              transform: none;
+              filter: none;
+            }
+          }
+        `}
+      </style>
+      <div className="mx-auto space-y-14">
         <div className="mx-auto max-w-4xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.34em] text-zinc-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.34em] text-blue-600">
             Race Condition Visual Demo
           </p>
           <h1 className="mt-6 text-5xl font-semibold tracking-[-0.05em] text-zinc-950 sm:text-6xl lg:text-7xl">
-            Show the difference between stale reads and row-level locking.
+            Watch two bids compete for the same row.
           </h1>
-          <p className="mt-6 text-lg leading-8 text-zinc-600">
-            This is an educational visualization for interviews. It simulates two competing bids, first without locking and then with transaction.atomic() plus select_for_update().
-          </p>
         </div>
 
         <div className="mx-auto flex max-w-3xl flex-col items-center gap-5">
-          <div className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 p-1.5">
+          <div className="inline-flex rounded-full border border-zinc-200 bg-white p-1.5 shadow-sm">
             <button
               type="button"
               onClick={() => {
@@ -438,8 +472,8 @@ export function RaceConditionPage() {
                 setRunId((current) => current + 1);
               }}
               className={[
-                "rounded-full px-5 py-3 text-sm font-medium transition-all duration-300 ease-in-out",
-                mode === "unsafe" ? "bg-zinc-950 text-white" : "text-zinc-500 hover:bg-white",
+                "rounded-full px-5 py-3 text-sm font-medium transition-colors transition-transform duration-300 ease-in-out active:scale-[0.96]",
+                mode === "unsafe" ? "bg-zinc-950 text-white shadow-sm" : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950",
               ].join(" ")}
             >
               UNSAFE MODE
@@ -451,145 +485,109 @@ export function RaceConditionPage() {
                 setRunId((current) => current + 1);
               }}
               className={[
-                "rounded-full px-5 py-3 text-sm font-medium transition-all duration-300 ease-in-out",
-                mode === "safe" ? "bg-zinc-950 text-white" : "text-zinc-500 hover:bg-white",
+                "rounded-full px-5 py-3 text-sm font-medium transition-colors transition-transform duration-300 ease-in-out active:scale-[0.96]",
+                mode === "safe" ? "bg-zinc-950 text-white shadow-sm" : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950",
               ].join(" ")}
             >
               SAFE MODE
             </button>
           </div>
-          <Button type="button" variant="secondary" onClick={() => setRunId((current) => current + 1)}>
+          <Button type="button" variant="secondary" className="hover:-translate-y-0.5 hover:shadow-md" onClick={() => setRunId((current) => current + 1)}>
             Replay Simulation
           </Button>
         </div>
 
-        <div className="grid gap-5 xl:grid-cols-[0.52fr_1.96fr_0.52fr]">
+        <div className="grid gap-5 lg:grid-cols-2">
           <UserCard label="User A" user={users.A} />
+          <UserCard label="User B" user={users.B} />
+        </div>
 
-          <div className="rounded-[2rem] border border-zinc-200/70 bg-white p-7">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.34em] text-zinc-400">
-                  Backend Timeline
-                </p>
-                <h2 className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-zinc-950">
-                  {mode === "unsafe" ? "No row lock protection" : "Serialized writes with row-level locking"}
-                </h2>
-              </div>
-              <div className="rounded-full bg-zinc-100 px-4 py-2 text-xs uppercase tracking-[0.24em] text-zinc-500">
-                {mode}
-              </div>
-            </div>
-
-            <div className="mt-8 grid gap-5 xl:grid-cols-[1.36fr_0.84fr]">
-              <div className="min-w-0 rounded-[1.75rem] bg-zinc-950 px-4 py-4">
-                <div className="flex items-center gap-2 border-b border-white/10 pb-4">
-                  <span className="h-2.5 w-2.5 rounded-full bg-white/25" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-white/10" />
-                  <p className="ml-2 text-xs uppercase tracking-[0.28em] text-white/40">transaction log</p>
-                </div>
-                <div className="mt-4 h-[24rem] space-y-2 overflow-y-auto overflow-x-visible font-mono text-[11px] leading-relaxed text-zinc-100">
-                  {timeline.map((entry, index) => (
-                    <div
-                      key={`${entry.at}-${index}`}
-                      className={[
-                        "animate-[fade-up_0.7s_cubic-bezier(0.4,0,0.2,1)_forwards] rounded-xl px-3 py-2.5 opacity-0 transition-colors duration-500 ease-in-out",
-                        index === timeline.length - 1 ? "bg-white/[0.08]" : "bg-white/[0.03]",
-                      ].join(" ")}
+        <div className="mx-auto max-w-[calc(100vw-2rem)] rounded-[2rem] border border-zinc-200/70 bg-white p-3 shadow-soft sm:p-5 lg:p-6">
+          <div className="relative">
+            <div className="absolute left-4 right-4 top-8 h-px bg-gradient-to-r from-blue-100 via-zinc-200 to-emerald-100" />
+            <div className="flex flex-row flex-nowrap gap-1.5 sm:gap-2 lg:gap-3 xl:gap-4">
+              {timeline.map((entry, index) => (
+                <article
+                  key={`${entry.at}-${index}`}
+                  className={[
+                    "race-timeline-card relative min-h-[8rem] min-w-0 flex-1 basis-0 rounded-[1.1rem] border p-2.5 opacity-0 transition-transform duration-300 ease-soft hover:-translate-y-1 hover:shadow-soft sm:min-h-[8.75rem] sm:p-3 lg:min-w-[120px] lg:rounded-[1.35rem] lg:p-4 xl:min-w-[140px] 2xl:min-w-[160px]",
+                    timelineCardClasses(entry.side),
+                  ].join(" ")}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-950 text-[10px] font-semibold tabular-nums text-white shadow-sm sm:h-8 sm:w-8 sm:text-xs lg:h-9 lg:w-9">
+                      {index + 1}
+                    </span>
+                    <span
+                      className="min-w-[3.25rem] shrink-0 rounded-full bg-white/75 px-1.5 py-1 text-center text-[8px] font-semibold uppercase tracking-[0.04em] text-zinc-500 shadow-sm sm:text-[9px] lg:px-2 lg:text-[10px] xl:min-w-[3.75rem] xl:text-xs"
+                      title={entry.side ? `User ${entry.side}` : "DB"}
                     >
-                      <span
-                        className={[
-                          "block whitespace-nowrap",
-                          index === timeline.length - 1 ? "text-white" : "text-white/88",
-                        ].join(" ")}
-                      >
-                        {entry.text}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="min-w-0 space-y-4">
-                <div className={["rounded-[1.75rem] border px-5 py-5", resultClasses(snapshot.resultTone)].join(" ")}>
-                  <p className="text-xs font-semibold uppercase tracking-[0.28em]">Outcome</p>
-                  <h3 className="mt-4 text-2xl font-semibold tracking-[-0.03em]">{snapshot.resultTitle}</h3>
-                  <p className="mt-4 text-base leading-8">{snapshot.resultBody}</p>
-                  <p className="mt-6 text-sm uppercase tracking-[0.24em]">
-                    Final highest bid
+                      {entry.side ? `User ${entry.side}` : "DB"}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-[9px] font-semibold leading-4 tracking-[-0.02em] text-current sm:text-[10px] sm:leading-5 lg:mt-5 lg:text-xs xl:text-sm xl:leading-6">
+                    {compactTimelineText(entry.text)}
                   </p>
-                  <p className="mt-3 text-4xl font-semibold tracking-[-0.04em]">
-                    {snapshot.finalBid ? snapshot.finalBid.toLocaleString() : "Pending"}
-                  </p>
-                </div>
+                </article>
+              ))}
 
-                <div className="grid gap-4">
-                  <div className="rounded-[1.5rem] border border-zinc-200/70 bg-zinc-50/70 px-5 py-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.28em] text-zinc-400">Lock state</p>
-                    <p className="mt-4 text-xl font-semibold tracking-[-0.03em] text-zinc-950">{snapshot.lockState}</p>
-                    <p className="mt-3 text-sm leading-7 text-zinc-600">
-                      {mode === "unsafe"
-                        ? "No database-enforced serialization exists here, so both requests can continue independently."
-                        : "The row-level lock decides which request may mutate the highest bid row at any point in time."}
-                    </p>
-                  </div>
-                  <div className="rounded-[1.5rem] border border-zinc-200/70 bg-zinc-50/70 px-5 py-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.28em] text-zinc-400">Row state</p>
-                    <p className="mt-4 text-xl font-semibold tracking-[-0.03em] text-zinc-950">{snapshot.rowState}</p>
-                    <p className="mt-3 text-sm leading-7 text-zinc-600">
-                      This mirrors what the row effectively looks like inside the database as each step unfolds.
-                    </p>
-                  </div>
-                </div>
+              {!timeline.length ? (
+                <article className="min-h-[8rem] min-w-0 flex-1 basis-0 rounded-[1.1rem] border border-dashed border-zinc-200 bg-zinc-50/80 p-2.5 text-zinc-500 sm:min-h-[8.75rem] sm:p-3 lg:min-w-[120px] lg:rounded-[1.35rem] lg:p-4 xl:min-w-[140px] 2xl:min-w-[160px]">
+                  <div className="h-7 w-7 rounded-full bg-zinc-200/70 sm:h-8 sm:w-8 lg:h-10 lg:w-10" />
+                  <p className="mt-4 text-[10px] leading-5 sm:text-xs lg:mt-6 lg:text-sm lg:leading-7">Waiting...</p>
+                </article>
+              ) : null}
+            </div>
+          </div>
+        </div>
 
-                {mode === "unsafe" && snapshot.overwritten ? (
-                  <div className="rounded-[1.5rem] border border-red-100 bg-white/70 px-5 py-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.28em] text-red-500">Overwritten winner</p>
-                    <div className="mt-5 space-y-4">
-                      <div className="rounded-[1.25rem] bg-zinc-950 px-4 py-4 text-white">
-                        <p className="text-xs uppercase tracking-[0.24em] text-white/50">Correct winning bid before overwrite</p>
-                        <p className="mt-3 text-2xl font-semibold tracking-[-0.03em]">
-                          {snapshot.overwritten.previousWinner.toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-zinc-500">
-                        <span className="h-px flex-1 bg-zinc-200" />
-                        stale write lands last
-                        <span className="h-px flex-1 bg-zinc-200" />
-                      </div>
-                      <div className="rounded-[1.25rem] bg-red-50 px-4 py-4 text-red-800">
-                        <p className="text-xs uppercase tracking-[0.24em] text-red-500">Incorrect final stored value</p>
-                        <p className="mt-3 text-2xl font-semibold tracking-[-0.03em]">
-                          {snapshot.overwritten.finalStored.toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-
-                {mode === "safe" && snapshot.finalBid ? (
-                  <div className="rounded-[1.5rem] border border-emerald-100 bg-white/70 px-5 py-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-600">Serialized result</p>
-                    <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                      <div className="rounded-[1.25rem] bg-zinc-950 px-4 py-4 text-white">
-                        <p className="text-xs uppercase tracking-[0.24em] text-white/50">Committed by User A</p>
-                        <p className="mt-3 text-2xl font-semibold tracking-[-0.03em]">25,000</p>
-                      </div>
-                      <div className="rounded-[1.25rem] bg-emerald-50 px-4 py-4 text-emerald-800">
-                        <p className="text-xs uppercase tracking-[0.24em] text-emerald-500">Committed by User B</p>
-                        <p className="mt-3 text-2xl font-semibold tracking-[-0.03em]">
-                          {snapshot.finalBid.toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
+        <div className={["rounded-[2rem] border px-6 py-6 shadow-soft sm:px-8 sm:py-7", resultClasses(snapshot.resultTone)].join(" ")}>
+          <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em]">Final Result</p>
+              <h3 className="mt-4 text-3xl font-semibold tracking-[-0.04em]">{snapshot.resultTitle}</h3>
+              <p className="mt-4 max-w-3xl text-base leading-8">{snapshot.resultBody}</p>
+            </div>
+            <div className="rounded-[1.5rem] bg-white/70 px-5 py-5 shadow-sm">
+              <p className="text-xs uppercase tracking-[0.24em] opacity-70">Final highest bid</p>
+              <p className="mt-3 text-4xl font-semibold tracking-[-0.04em] tabular-nums">
+                {snapshot.finalBid ? snapshot.finalBid.toLocaleString() : "Pending"}
+              </p>
             </div>
           </div>
 
-          <UserCard label="User B" user={users.B} />
+          {mode === "unsafe" && snapshot.overwritten ? (
+            <div className="mt-6 grid gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+              <div className="rounded-[1.25rem] bg-zinc-950 px-4 py-4 text-white">
+                <p className="text-xs uppercase tracking-[0.24em] text-white/50">Correct winning bid before overwrite</p>
+                <p className="mt-3 text-2xl font-semibold tracking-[-0.03em] tabular-nums">
+                  {snapshot.overwritten.previousWinner.toLocaleString()}
+                </p>
+              </div>
+              <div className="text-center text-sm text-red-500">stale write lands last</div>
+              <div className="rounded-[1.25rem] bg-red-100 px-4 py-4 text-red-900">
+                <p className="text-xs uppercase tracking-[0.24em] text-red-500">Incorrect final stored value</p>
+                <p className="mt-3 text-2xl font-semibold tracking-[-0.03em] tabular-nums">
+                  {snapshot.overwritten.finalStored.toLocaleString()}
+                </p>
+              </div>
+            </div>
+          ) : null}
+
+          {mode === "safe" && snapshot.finalBid ? (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-[1.25rem] bg-zinc-950 px-4 py-4 text-white">
+                <p className="text-xs uppercase tracking-[0.24em] text-white/50">Committed by User A</p>
+                <p className="mt-3 text-2xl font-semibold tracking-[-0.03em] tabular-nums">25,000</p>
+              </div>
+              <div className="rounded-[1.25rem] bg-emerald-100 px-4 py-4 text-emerald-900">
+                <p className="text-xs uppercase tracking-[0.24em] text-emerald-600">Committed by User B</p>
+                <p className="mt-3 text-2xl font-semibold tracking-[-0.03em] tabular-nums">
+                  {snapshot.finalBid.toLocaleString()}
+                </p>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </Section>
