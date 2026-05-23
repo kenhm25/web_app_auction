@@ -11,6 +11,7 @@ import {
   type Product,
 } from "../lib/api";
 import { useDemoSession } from "../hooks/useDemoSession";
+import { useLanguage } from "../i18n/LanguageContext";
 
 type InlineNotice = {
   tone: "success" | "error" | "info";
@@ -70,6 +71,7 @@ function formatError(data: unknown, fallback: string) {
 }
 
 export function AuctionDemoPage() {
+  const { t } = useLanguage();
   const hasLoadedInitialProducts = useRef(false);
   const { tokenState, idTokenClaims, isAuthenticated } = useDemoSession();
   const [products, setProducts] = useState<Product[]>([]);
@@ -94,7 +96,11 @@ export function AuctionDemoPage() {
     [traces, selectedTraceId],
   );
   const shouldShowImage = Boolean(selectedProduct?.image_url && !hiddenImages[selectedProduct.id]);
-  const signInMethod = idTokenClaims ? "OIDC Google" : isAuthenticated ? "Username/password" : "Guest";
+  const signInMethod = idTokenClaims
+    ? t.auction.signInMethodGoogle
+    : isAuthenticated
+      ? t.auction.signInMethodLocal
+      : t.auction.signInMethodGuest;
 
   useEffect(() => {
     if (hasLoadedInitialProducts.current) {
@@ -153,14 +159,14 @@ export function AuctionDemoPage() {
       const result = await fetchProducts();
       setProducts(result.data);
       pushTrace({
-        title: "Fetched product list",
+        title: t.auction.fetchedProducts,
         method: result.log.method,
         url: result.log.url,
         payload: result.log.body,
         response: result.data,
         status: result.status,
         category: "product",
-        summary: "Public product data loaded for the auction app.",
+        summary: t.auction.fetchedProductsSummary,
       });
     } catch (caught) {
       const apiError = caught as {
@@ -171,7 +177,7 @@ export function AuctionDemoPage() {
 
       if (apiError.log) {
         pushTrace({
-          title: "Product fetch failed",
+          title: t.auction.productFetchFailed,
           method: apiError.log.method,
           url: apiError.log.url,
           payload: apiError.log.body,
@@ -188,8 +194,8 @@ export function AuctionDemoPage() {
     if (!tokenState?.access) {
       setProductNotice({
         tone: "info",
-        title: "Authentication required",
-        message: "Open Auth Showcase and sign in before creating a product.",
+        title: t.auction.authRequired,
+        message: t.auction.createAuthRequiredMessage,
       });
       return;
     }
@@ -201,24 +207,24 @@ export function AuctionDemoPage() {
       const result = await createProduct(productForm, tokenState.access);
       setProductNotice({
         tone: "success",
-        title: "Product created",
-        message: `${result.data.title} is now available in the auction list.`,
+        title: t.auction.productCreated,
+        message: t.auction.productCreatedMessage(result.data.title),
       });
       pushTrace({
-        title: "Product creation",
+        title: t.auction.productCreation,
         method: result.log.method,
         url: result.log.url,
         payload: result.log.body,
         response: result.data,
         status: result.status,
         category: "product",
-        summary: "Authenticated product creation used the shared backend JWT.",
+        summary: t.auction.productCreationSummary,
       });
       setProductForm(initialProduct);
       await loadProducts();
       setSelectedId(result.data.id);
     } catch (caught) {
-      applyError(caught, "Product creation failed.", "Product creation failed", setProductNotice, "product");
+      applyError(caught, t.auction.productCreationFailed, t.auction.productCreationFailed, setProductNotice, "product");
     } finally {
       setIsCreatingProduct(false);
     }
@@ -229,8 +235,8 @@ export function AuctionDemoPage() {
     if (!selectedProduct || !tokenState?.access) {
       setBidNotice({
         tone: "info",
-        title: "Authentication required",
-        message: "Sign in first to place a bid.",
+        title: t.auction.authRequired,
+        message: t.auction.bidAuthRequiredMessage,
       });
       return;
     }
@@ -242,23 +248,23 @@ export function AuctionDemoPage() {
       const result = await placeBid(selectedProduct.id, bidAmount, tokenState.access);
       setBidNotice({
         tone: "success",
-        title: "Bid accepted",
-        message: `The API accepted a bid of ${result.data.bid_amount}.`,
+        title: t.auction.bidAccepted,
+        message: t.auction.bidAcceptedMessage(result.data.bid_amount),
       });
       pushTrace({
-        title: "Bid submission",
+        title: t.auction.bidSubmission,
         method: result.log.method,
         url: result.log.url,
         payload: result.log.body,
         response: result.data,
         status: result.status,
         category: "bid",
-        summary: "Authenticated bid submission used the shared backend JWT.",
+        summary: t.auction.bidSubmissionSummary,
       });
       setBidAmount("");
       await loadProducts();
     } catch (caught) {
-      applyError(caught, "Bid failed.", "Bid submission failed", setBidNotice, "bid");
+      applyError(caught, t.auction.bidFailed, t.auction.bidSubmissionFailed, setBidNotice, "bid");
     } finally {
       setIsBidding(false);
     }
@@ -267,8 +273,8 @@ export function AuctionDemoPage() {
   return (
     <>
       <ApiTraceDrawer
-        title="Auction API activity"
-        description="Inspect request/response payloads"
+        title={t.auction.drawerTitle}
+        description={t.auction.drawerDescription}
         traces={traces}
         selectedTrace={selectedTrace}
         isOpen={isTracePanelOpen}
@@ -281,48 +287,48 @@ export function AuctionDemoPage() {
         <div className="mx-auto space-y-10">
           <div className="flex flex-col justify-between gap-6 rounded-[2rem] border border-zinc-200/70 bg-white p-8 shadow-soft sm:p-10 lg:flex-row lg:items-end">
             <div className="max-w-3xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.34em] text-blue-600">Auction App</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.34em] text-blue-600">{t.auction.eyebrow}</p>
               <h1 className="mt-6 text-5xl font-semibold tracking-[-0.05em] text-zinc-950 sm:text-6xl">
-                A small marketplace backed by JWT auth.
+                {t.auction.title}
               </h1>
               <p className="mt-6 text-lg leading-8 text-zinc-600">
-                Browse listings, create products, and place bids through the same authenticated session established in the Auth Showcase.
+                {t.auction.subtitle}
               </p>
             </div>
 
             <div className="w-full rounded-[1.5rem] border border-zinc-200/70 bg-zinc-50 p-5 shadow-sm lg:max-w-xs">
-              <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Session</p>
+              <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">{t.common.session}</p>
               <p className="mt-2 text-lg font-semibold text-zinc-950">
-                {isAuthenticated ? "Authenticated" : "Guest mode"}
+                {isAuthenticated ? t.auction.authenticated : t.common.guestMode}
               </p>
               {isAuthenticated ? (
                 <dl className="mt-4 space-y-3 text-sm">
                   <div className="flex items-start justify-between gap-4">
-                    <dt className="text-zinc-500">Username</dt>
+                    <dt className="text-zinc-500">{t.common.username}</dt>
                     <dd className="min-w-0 break-words text-right font-medium text-zinc-900">
-                      {tokenState?.user.username || "Not provided"}
+                      {tokenState?.user.username || t.common.notProvided}
                     </dd>
                   </div>
                   <div className="flex items-start justify-between gap-4">
-                    <dt className="text-zinc-500">Method</dt>
+                    <dt className="text-zinc-500">{t.common.method}</dt>
                     <dd className="text-right font-medium text-zinc-900">{signInMethod}</dd>
                   </div>
                   <div className="flex items-start justify-between gap-4">
-                    <dt className="text-zinc-500">Email</dt>
+                    <dt className="text-zinc-500">{t.common.email}</dt>
                     <dd className="min-w-0 break-words text-right font-medium text-zinc-900">
-                      {tokenState?.user.email || "Not provided"}
+                      {tokenState?.user.email || t.common.notProvided}
                     </dd>
                   </div>
                 </dl>
               ) : (
-                <p className="mt-2 truncate text-sm text-zinc-500">Sign in to create products or bid.</p>
+                <p className="mt-2 text-sm text-zinc-500">{t.auction.signInPrompt}</p>
               )}
               {!isAuthenticated ? (
                 <Link
                   to="/demo/auth"
                   className="mt-5 inline-flex w-full items-center justify-center rounded-full bg-zinc-950 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all duration-300 ease-soft hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md"
                 >
-                  Open Auth Showcase
+                  {t.auction.openAuth}
                 </Link>
               ) : null}
             </div>
@@ -333,9 +339,9 @@ export function AuctionDemoPage() {
               <div className="rounded-[2rem] border border-zinc-200/70 bg-white p-7 shadow-soft sm:p-8">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-zinc-500">Products</p>
+                    <p className="text-sm font-medium text-zinc-500">{t.auction.products}</p>
                     <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-zinc-950">
-                      Active listings
+                      {t.auction.activeListings}
                     </h2>
                   </div>
                   <span className="rounded-full bg-zinc-100 px-4 py-2 text-xs uppercase tracking-[0.24em] text-zinc-500">
@@ -370,7 +376,7 @@ export function AuctionDemoPage() {
                   })}
                   {!products.length ? (
                     <div className="rounded-[1.25rem] bg-zinc-50 px-5 py-5">
-                      <p className="text-sm leading-relaxed text-zinc-500">No products returned from the API yet.</p>
+                      <p className="text-sm leading-relaxed text-zinc-500">{t.auction.noProducts}</p>
                     </div>
                   ) : null}
                 </div>
@@ -378,11 +384,11 @@ export function AuctionDemoPage() {
 
               {isAuthenticated ? (
                 <div className="rounded-[2rem] border border-zinc-200/70 bg-white p-7 shadow-soft sm:p-8">
-                  <p className="text-sm font-medium text-zinc-500">Create product</p>
+                  <p className="text-sm font-medium text-zinc-500">{t.auction.createProduct}</p>
                   <form className="mt-6 space-y-4" onSubmit={handleCreateProduct}>
                     <input
-                      aria-label="Title"
-                      placeholder="Title"
+                      aria-label={t.common.title}
+                      placeholder={t.common.title}
                       className={inputClasses}
                       value={productForm.title}
                       onChange={(event) =>
@@ -390,8 +396,8 @@ export function AuctionDemoPage() {
                       }
                     />
                     <textarea
-                      aria-label="Description"
-                      placeholder="Description"
+                      aria-label={t.common.description}
+                      placeholder={t.common.description}
                       className={`${inputClasses} min-h-[120px]`}
                       value={productForm.description}
                       onChange={(event) =>
@@ -400,9 +406,9 @@ export function AuctionDemoPage() {
                     />
                     <div className="grid gap-4 sm:grid-cols-2">
                       <input
-                        aria-label="Starting bid"
+                        aria-label={t.auction.startingBid}
                         inputMode="decimal"
-                        placeholder="Starting bid"
+                        placeholder={t.auction.startingBid}
                         className={inputClasses}
                         value={productForm.starting_bid}
                         onChange={(event) =>
@@ -410,8 +416,8 @@ export function AuctionDemoPage() {
                         }
                       />
                       <input
-                        aria-label="Location"
-                        placeholder="Location"
+                        aria-label={t.common.location}
+                        placeholder={t.common.location}
                         className={inputClasses}
                         value={productForm.location}
                         onChange={(event) =>
@@ -420,8 +426,8 @@ export function AuctionDemoPage() {
                       />
                     </div>
                     <input
-                      aria-label="Image URL"
-                      placeholder="Image URL"
+                      aria-label={t.auction.imageUrl}
+                      placeholder={t.auction.imageUrl}
                       className={inputClasses}
                       value={productForm.image_url}
                       onChange={(event) =>
@@ -429,7 +435,7 @@ export function AuctionDemoPage() {
                       }
                     />
                     <Button className="w-full shadow-sm hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md disabled:translate-y-0 disabled:opacity-60" type="submit" disabled={isCreatingProduct}>
-                      {isCreatingProduct ? "Processing" : "Create Product"}
+                      {isCreatingProduct ? t.common.processing : t.auction.createProductButton}
                     </Button>
                     <NoticeCard notice={productNotice} />
                   </form>
@@ -438,7 +444,7 @@ export function AuctionDemoPage() {
             </div>
 
             <div className="rounded-[2rem] border border-zinc-200/70 bg-white p-7 shadow-soft sm:p-8">
-              <p className="text-sm font-medium text-zinc-500">Selected listing</p>
+              <p className="text-sm font-medium text-zinc-500">{t.auction.selectedListing}</p>
               {selectedProduct ? (
                 <div className="mt-6 space-y-8">
                   <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -449,7 +455,7 @@ export function AuctionDemoPage() {
                       <p className="mt-4 text-base leading-8 text-zinc-600">{selectedProduct.description}</p>
                     </div>
                     <div className="rounded-[1.5rem] bg-zinc-950 px-6 py-5 text-white shadow-md">
-                      <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Highest bid</p>
+                      <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">{t.auction.highestBid}</p>
                       <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">
                         {selectedProduct.current_highest_bid}
                       </p>
@@ -474,15 +480,15 @@ export function AuctionDemoPage() {
 
                   <div className="grid gap-4 sm:grid-cols-3">
                     <div className="rounded-[1.5rem] border border-zinc-200/70 bg-zinc-50 p-5">
-                      <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Location</p>
+                      <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">{t.common.location}</p>
                       <p className="mt-3 text-lg font-medium text-zinc-900">{selectedProduct.location}</p>
                     </div>
                     <div className="rounded-[1.5rem] border border-zinc-200/70 bg-zinc-50 p-5">
-                      <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Starting bid</p>
+                      <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">{t.auction.startingBid}</p>
                       <p className="mt-3 text-lg font-medium text-zinc-900">{selectedProduct.starting_bid}</p>
                     </div>
                     <div className="rounded-[1.5rem] border border-zinc-200/70 bg-zinc-50 p-5">
-                      <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Seller</p>
+                      <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">{t.auction.seller}</p>
                       <p className="mt-3 text-lg font-medium text-zinc-900">#{selectedProduct.seller}</p>
                     </div>
                   </div>
@@ -490,7 +496,7 @@ export function AuctionDemoPage() {
                   {!isAuthenticated ? (
                     <div className="rounded-[1.5rem] border border-blue-100 bg-blue-50 px-5 py-4">
                       <p className="text-sm leading-7 text-zinc-600">
-                        Sign in from the Auth Showcase to place bids and create products with the backend JWT session.
+                        {t.auction.signInForBids}
                       </p>
                     </div>
                   ) : (
@@ -500,7 +506,7 @@ export function AuctionDemoPage() {
                     >
                       <div className="flex flex-col gap-4 sm:flex-row">
                         <input
-                          aria-label="Bid amount"
+                          aria-label={t.auction.bidAmount}
                           inputMode="decimal"
                           placeholder="200.00"
                           className={`${inputClasses} min-w-0 flex-1`}
@@ -508,7 +514,7 @@ export function AuctionDemoPage() {
                           onChange={(event) => setBidAmount(event.target.value)}
                         />
                         <Button className="shadow-sm hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md disabled:translate-y-0 disabled:opacity-60" type="submit" disabled={isBidding}>
-                          {isBidding ? "Processing" : "Place Bid"}
+                          {isBidding ? t.common.processing : t.auction.placeBid}
                         </Button>
                       </div>
                       <NoticeCard notice={bidNotice} />
@@ -516,7 +522,7 @@ export function AuctionDemoPage() {
                   )}
                 </div>
               ) : (
-                <p className="mt-6 text-zinc-500">No products returned from the API yet.</p>
+                <p className="mt-6 text-zinc-500">{t.auction.noProducts}</p>
               )}
             </div>
           </div>

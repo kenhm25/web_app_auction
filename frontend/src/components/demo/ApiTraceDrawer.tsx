@@ -1,3 +1,5 @@
+import { useLanguage } from "../../i18n/LanguageContext";
+
 export type ApiTrace = {
   id: number;
   title: string;
@@ -104,6 +106,8 @@ export function ApiTraceDrawer({
   onSelectTrace,
   onRefresh,
 }: ApiTraceDrawerProps) {
+  const { t } = useLanguage();
+
   return (
     <>
       <style>
@@ -155,7 +159,7 @@ export function ApiTraceDrawer({
             aria-expanded={isOpen}
             aria-controls="api-trace-panel"
           >
-            {isOpen ? "Close API" : "Open API"}
+            {isOpen ? t.apiDrawer.close : t.apiDrawer.open}
           </button>
         </div>
       </div>
@@ -179,14 +183,14 @@ export function ApiTraceDrawer({
             {!selectedTrace ? (
               <>
                 <div className="mt-2 flex items-center justify-between">
-                  <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Recent activity</p>
+                  <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">{t.apiDrawer.recentActivity}</p>
                   {onRefresh ? (
                     <button
                       type="button"
                       onClick={onRefresh}
                       className="rounded-full border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-500 shadow-sm transition-colors transition-transform duration-300 ease-soft hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-950 active:scale-[0.96]"
                     >
-                      Refresh data
+                      {t.apiDrawer.refresh}
                     </button>
                   ) : null}
                 </div>
@@ -208,7 +212,7 @@ export function ApiTraceDrawer({
                                 categoryBadgeClasses(trace.category),
                               ].join(" ")}
                             >
-                              {trace.category ?? "api"}
+                              {trace.category ?? t.apiDrawer.apiFallback}
                             </span>
                             <span
                               className={[
@@ -233,14 +237,14 @@ export function ApiTraceDrawer({
                             statusBadgeClasses(trace.status),
                           ].join(" ")}
                         >
-                          {trace.status ?? "pending"}
+                          {trace.status ?? t.common.pending}
                         </div>
                       </div>
                     </button>
                   ))}
                   {!traces.length ? (
                     <div className="rounded-[1.25rem] bg-zinc-50 px-5 py-5">
-                      <p className="text-sm leading-relaxed text-zinc-500">API activity will appear here.</p>
+                      <p className="text-sm leading-relaxed text-zinc-500">{t.apiDrawer.empty}</p>
                     </div>
                   ) : null}
                 </div>
@@ -253,7 +257,7 @@ export function ApiTraceDrawer({
                     onClick={() => onSelectTrace(null)}
                     className="rounded-full border border-zinc-200 bg-white px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500 transition-all duration-300 ease-in-out hover:bg-zinc-50"
                   >
-                    Back to list
+                    {t.apiDrawer.back}
                   </button>
                   <div
                     className={[
@@ -261,7 +265,7 @@ export function ApiTraceDrawer({
                       statusBadgeClasses(selectedTrace.status),
                     ].join(" ")}
                   >
-                    {selectedTrace.status ?? "pending"}
+                    {selectedTrace.status ?? t.common.pending}
                   </div>
                 </div>
 
@@ -276,7 +280,7 @@ export function ApiTraceDrawer({
                               categoryBadgeClasses(selectedTrace.category),
                             ].join(" ")}
                           >
-                            {selectedTrace.category ?? "api"}
+                            {selectedTrace.category ?? t.apiDrawer.apiFallback}
                           </span>
                           <span
                             className={[
@@ -302,8 +306,8 @@ export function ApiTraceDrawer({
                     <div className="mt-6 space-y-6">
                       <section className="rounded-[1.25rem] border border-zinc-200/70 bg-white p-4 shadow-sm">
                         <div className="flex items-center justify-between gap-3">
-                          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">Payload</p>
-                          <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-medium text-zinc-500">request</span>
+                          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">{t.apiDrawer.payload}</p>
+                          <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-medium text-zinc-500">{t.apiDrawer.request}</span>
                         </div>
                         <pre className="mt-3 overflow-x-auto rounded-xl bg-zinc-950 px-4 py-4 font-mono text-sm leading-relaxed text-zinc-100 shadow-inner">
                           <code>{JSON.stringify(redactSensitiveValues(selectedTrace.payload ?? null), null, 2)}</code>
@@ -312,8 +316,8 @@ export function ApiTraceDrawer({
 
                       <section className="rounded-[1.25rem] border border-blue-100 bg-blue-50/50 p-4 shadow-sm">
                         <div className="flex items-center justify-between gap-3">
-                          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-500">Response</p>
-                          <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-blue-600">backend</span>
+                          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-500">{t.apiDrawer.response}</p>
+                          <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-blue-600">{t.apiDrawer.backend}</span>
                         </div>
                         <pre className="mt-3 overflow-x-auto rounded-xl bg-zinc-950 px-4 py-4 font-mono text-sm leading-relaxed text-zinc-100 shadow-inner">
                           <code>{JSON.stringify(redactSensitiveValues(selectedTrace.response ?? null), null, 2)}</code>

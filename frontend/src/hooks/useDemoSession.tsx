@@ -74,9 +74,9 @@ export function parseSafeIdTokenClaims(value: string | null): SafeIdTokenClaims 
   }
 }
 
-export function formatUnixTimestamp(value?: number) {
+export function formatUnixTimestamp(value?: number, fallback = "Not provided") {
   if (!value) {
-    return "Not provided";
+    return fallback;
   }
 
   return new Intl.DateTimeFormat("en", {

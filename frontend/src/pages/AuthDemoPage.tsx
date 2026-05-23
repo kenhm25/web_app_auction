@@ -15,6 +15,7 @@ import {
   parseSafeIdTokenClaims,
   useDemoSession,
 } from "../hooks/useDemoSession";
+import { useLanguage } from "../i18n/LanguageContext";
 
 type InlineNotice = {
   tone: "success" | "error" | "info";
@@ -109,16 +110,16 @@ function NoticeCard({ notice }: { notice: InlineNotice }) {
   );
 }
 
-function formatError(data: unknown, fallback: string) {
+function formatError(data: unknown, fallback: string, messages: { sessionExpired: string; signInUnavailable: string }) {
   if (typeof data === "object" && data !== null) {
     const detailValue = (data as Record<string, unknown>).detail;
     if (typeof detailValue === "string") {
       const normalized = detailValue.toLowerCase();
       if (normalized.includes("token") && normalized.includes("expired")) {
-        return "Your session expired. Please try again.";
+        return messages.sessionExpired;
       }
       if (normalized.includes("temporarily") || normalized.includes("unavailable")) {
-        return "Sign-in is temporarily unavailable.";
+        return messages.signInUnavailable;
       }
       return detailValue;
     }
@@ -127,7 +128,10 @@ function formatError(data: unknown, fallback: string) {
   return fallback;
 }
 
-function oidcErrorMessage(params: URLSearchParams) {
+function oidcErrorMessage(
+  params: URLSearchParams,
+  messages: { googleCancelled: string; sessionExpired: string; signInUnavailable: string },
+) {
   const rawError = params.get("error") || params.get("detail") || params.get("message");
 
   if (!rawError) {
@@ -136,16 +140,17 @@ function oidcErrorMessage(params: URLSearchParams) {
 
   const normalized = rawError.toLowerCase();
   if (normalized.includes("access_denied") || normalized.includes("cancel")) {
-    return "Google login was cancelled.";
+    return messages.googleCancelled;
   }
   if (normalized.includes("expired") || normalized.includes("state")) {
-    return "Your session expired. Please try again.";
+    return messages.sessionExpired;
   }
 
-  return "Sign-in is temporarily unavailable.";
+  return messages.signInUnavailable;
 }
 
 export function AuthDemoPage() {
+  const { t } = useLanguage();
   const {
     tokenState,
     idTokenClaims,
@@ -173,16 +178,20 @@ export function AuthDemoPage() {
 
   const isGoogleFlowComplete = authMethod === "google" && isAuthenticated;
   const isLocalSession = authMethod === "local" && isAuthenticated;
-  const authProviderLabel = idTokenClaims ? "Google OIDC" : isAuthenticated ? "Username/password" : "Guest";
+  const authProviderLabel = idTokenClaims
+    ? t.auth.authProviderGoogle
+    : isAuthenticated
+      ? t.auth.authProviderLocal
+      : t.auth.authProviderGuest;
   const tokenExpiry =
-    typeof decodedAccessToken?.exp === "number" ? formatUnixTimestamp(decodedAccessToken.exp) : "Not provided";
+    typeof decodedAccessToken?.exp === "number" ? formatUnixTimestamp(decodedAccessToken.exp) : t.common.notProvided;
   const authStatusItems = [
-    ["Local credentials", isLocalSession ? "done" : "idle"],
-    ["Google redirect", oidcStage === "prepared" ? "ready" : oidcStage === "redirecting" ? "active" : isGoogleFlowComplete ? "done" : "idle"],
-    ["Authorization code", isGoogleFlowComplete ? "done" : "idle"],
-    ["Backend exchange", isGoogleFlowComplete ? "done" : "idle"],
-    ["ID token verified", isGoogleFlowComplete ? "done" : "idle"],
-    ["Backend JWT issued", isAuthenticated ? "done" : "idle"],
+    [t.auth.localCredentials, isLocalSession ? "done" : "idle"],
+    [t.auth.googleRedirect, oidcStage === "prepared" ? "ready" : oidcStage === "redirecting" ? "active" : isGoogleFlowComplete ? "done" : "idle"],
+    [t.auth.authorizationCode, isGoogleFlowComplete ? "done" : "idle"],
+    [t.auth.backendExchange, isGoogleFlowComplete ? "done" : "idle"],
+    [t.auth.idTokenVerified, isGoogleFlowComplete ? "done" : "idle"],
+    [t.auth.backendJwtIssued, isAuthenticated ? "done" : "idle"],
   ];
 
   function pushTrace(entry: Omit<ApiTrace, "id">) {
@@ -199,7 +208,7 @@ export function AuthDemoPage() {
     setAuthNotice({
       tone: "error",
       title,
-      message: formatError(apiError?.data, fallback),
+      message: formatError(apiError?.data, fallback, t.auth),
     });
 
     if (apiError.log) {
@@ -223,25 +232,25 @@ export function AuthDemoPage() {
     const email = params.get("email");
     const id = parseInt(params.get("id") || "100", 10);
     const claims = parseSafeIdTokenClaims(params.get("id_token_claims"));
-    const oidcError = oidcErrorMessage(params);
+    const oidcError = oidcErrorMessage(params, t.auth);
 
     if (oidcError) {
       setAuthMethod("none");
       setOidcStage("idle");
       setAuthNotice({
         tone: "error",
-        title: "Google sign-in failed",
+        title: t.auth.googleFailed,
         message: oidcError,
       });
       pushTrace({
-        title: "OIDC callback failed",
+        title: t.auth.oidcCallbackFailed,
         method: "SERVER",
         url: "/api/auth/google/callback/",
         payload: { error: params.get("error") ?? "REDACTED", state: params.get("state") ? "VERIFIED" : "MISSING" },
         response: { message: oidcError },
         status: 400,
         category: "oidc",
-        summary: "The Google callback returned an error, so no provider token or backend JWT was stored.",
+        summary: t.auth.oidcCallbackFailedSummary,
       });
       sessionStorage.removeItem("oidc_login_started");
       window.history.replaceState({}, "", "/demo/auth");
@@ -261,22 +270,22 @@ export function AuthDemoPage() {
       setOidcStage("complete");
       setAuthNotice({
         tone: "success",
-        title: "Google login success",
-        message: `Signed in as ${username}. Backend-issued JWT is ready for stateless API auth.`,
+        title: t.auth.googleLoginSuccess,
+        message: t.auth.googleLoginSuccessMessage(username),
       });
 
       pushTrace({
-        title: "OIDC callback processed",
+        title: t.auth.oidcCallbackProcessed,
         method: "SERVER",
         url: "/api/auth/google/callback/?code=REDACTED",
         payload: { code: "REDACTED" },
         response: { authorization_code_received: true },
         status: 302,
         category: "oidc",
-        summary: "Google redirected the browser back to the callback endpoint with an authorization code.",
+        summary: t.auth.oidcCallbackProcessedSummary,
       });
       pushTrace({
-        title: "Backend token exchange",
+        title: t.auth.backendTokenExchange,
         method: "SERVER",
         url: "https://oauth2.googleapis.com/token",
         payload: {
@@ -288,24 +297,24 @@ export function AuthDemoPage() {
         },
         response: {
           access_token: "REDACTED",
-          id_token: "REDACTED"
+          id_token: "REDACTED",
         },
         status: 200,
         category: "oidc",
         summary:
-          "The backend exchanged the authorization code with Google's token endpoint.",
+          t.auth.backendTokenExchangeSummary,
       });
       pushTrace({
-        title: "Google ID token verified",
+        title: t.auth.googleIdTokenVerified,
         method: "SERVER",
         url: "google.oauth2.id_token.verify_oauth2_token",
         response: claims ?? { verified: true, raw_token_exposed: false },
         status: 200,
         category: "oidc",
-        summary: "The backend validated the ID token and returned only a safe decoded claims subset.",
+        summary: t.auth.googleIdTokenVerifiedSummary,
       });
       pushTrace({
-        title: "Backend JWT issued",
+        title: t.auth.backendJwtIssuedTrace,
         method: "SERVER",
         url: "/api/auth/google/callback/",
         response: {
@@ -315,7 +324,7 @@ export function AuthDemoPage() {
         },
         status: 302,
         category: "auth",
-        summary: "The application now uses backend-issued JWTs for authenticated API requests.",
+        summary: t.auth.backendJwtIssuedSummary,
       });
 
       sessionStorage.removeItem("oidc_login_started");
@@ -330,7 +339,7 @@ export function AuthDemoPage() {
       setAuthMethod("local");
       setOidcStage("idle");
     }
-  }, [idTokenClaims, isAuthenticated, setSession]);
+  }, [idTokenClaims, isAuthenticated, setSession, t.auth]);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -344,22 +353,22 @@ export function AuthDemoPage() {
       setOidcStage("idle");
       setAuthNotice({
         tone: "success",
-        title: "Signed in",
-        message: `Signed in as ${result.data.user.username}. Backend-issued JWT is available.`,
+        title: t.auth.signedIn,
+        message: t.auth.signedInMessage(result.data.user.username),
       });
       pushTrace({
-        title: "JWT login",
+        title: t.auth.jwtLogin,
         method: result.log.method,
         url: result.log.url,
         payload: result.log.body,
         response: { ...result.data, access: "REDACTED", refresh: "REDACTED" },
         status: result.status,
         category: "auth",
-        summary: "Username and password login returned a backend-issued JWT.",
+        summary: t.auth.jwtLoginSummary,
       });
       setIsRegisterMode(false);
     } catch (caught) {
-      applyAuthError(caught, "Login failed.", "JWT login failed");
+      applyAuthError(caught, t.auth.loginFailed, t.auth.jwtLoginFailed);
     } finally {
       setIsAuthLoading(false);
     }
@@ -375,24 +384,24 @@ export function AuthDemoPage() {
       const registeredUser = result.data as RegisterResponse;
       setAuthNotice({
         tone: "success",
-        title: "Registered",
-        message: `Created account for ${registeredUser.username}. You can sign in now.`,
+        title: t.auth.registered,
+        message: t.auth.registeredMessage(registeredUser.username),
       });
       pushTrace({
-        title: "User registration",
+        title: t.auth.userRegistration,
         method: result.log.method,
         url: result.log.url,
         payload: result.log.body,
         response: result.data,
         status: result.status,
         category: "auth",
-        summary: "A local demo account was created through the registration endpoint.",
+        summary: t.auth.userRegistrationSummary,
       });
       setRegistration(initialRegistration);
       setCredentials({ username: registeredUser.username, password: "" });
       setIsRegisterMode(false);
     } catch (caught) {
-      applyAuthError(caught, "Registration failed.", "User registration failed");
+      applyAuthError(caught, t.auth.registrationFailed, t.auth.userRegistrationFailed);
     } finally {
       setIsRegistering(false);
     }
@@ -404,8 +413,8 @@ export function AuthDemoPage() {
     setOidcStage("idle");
     setAuthNotice({
       tone: "info",
-      title: "Signed out",
-      message: "The local demo JWT state has been cleared.",
+      title: t.auth.signedOut,
+      message: t.auth.signedOutMessage,
     });
   }
 
@@ -414,11 +423,11 @@ export function AuthDemoPage() {
     setOidcStage("prepared");
     setAuthNotice({
       tone: "info",
-      title: "Google sign-in ready",
-      message: "The OIDC flow is ready. Continue to Google when you want to leave this page.",
+      title: t.auth.googleReady,
+      message: t.auth.googleReadyMessage,
     });
     pushTrace({
-      title: "Google sign-in prepared",
+      title: t.auth.googlePrepared,
       method: "UI",
       url: googleOAuthStartUrl,
       payload: {
@@ -428,9 +437,9 @@ export function AuthDemoPage() {
         scope: "openid email profile",
         prompt: "consent",
       },
-      response: { next_step: "Continue to Google" },
+      response: { next_step: t.auth.continueGoogle },
       category: "oidc",
-      summary: "Frontend state is prepared so the Google redirect can be observed before navigation.",
+      summary: t.auth.googlePreparedSummary,
     });
   }
 
@@ -438,12 +447,12 @@ export function AuthDemoPage() {
     setOidcStage("redirecting");
     setAuthNotice({
       tone: "info",
-      title: "Continuing to Google",
-      message: "The backend will start the OIDC authorization code flow with Google.",
+      title: t.auth.continueToGoogleTitle,
+      message: t.auth.continueToGoogleMessage,
     });
     sessionStorage.setItem("oidc_login_started", "true");
     pushTrace({
-      title: "OIDC authorization request",
+      title: t.auth.oidcAuthorizationRequest,
       method: "GET",
       url: googleOAuthStartUrl,
       payload: {
@@ -454,7 +463,7 @@ export function AuthDemoPage() {
       response: { redirect_to: "https://accounts.google.com/o/oauth2/v2/auth" },
       status: 302,
       category: "oidc",
-      summary: "The browser is navigating to the backend endpoint that starts Google OIDC.",
+      summary: t.auth.oidcAuthorizationSummary,
     });
     window.location.href = googleOAuthStartUrl;
   }
@@ -462,8 +471,8 @@ export function AuthDemoPage() {
   return (
     <>
       <ApiTraceDrawer
-        title="Auth observability"
-        description="Inspect OIDC and backend-issued JWT events without exposing raw provider tokens."
+        title={t.auth.drawerTitle}
+        description={t.auth.drawerDescription}
         traces={traces}
         selectedTrace={selectedTrace}
         isOpen={isTracePanelOpen}
@@ -475,13 +484,13 @@ export function AuthDemoPage() {
         <div className="mx-auto space-y-7">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.34em] text-blue-600">Auth Showcase</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.34em] text-blue-600">{t.auth.eyebrow}</p>
               <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-zinc-950 sm:text-5xl">
-                Authentication control center.
+                {t.auth.title}
               </h1>
             </div>
             <div className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs uppercase tracking-[0.24em] text-zinc-600 shadow-sm">
-              {isAuthenticated ? "Stateless JWT" : "Guest"}
+              {isAuthenticated ? t.auth.authenticatedBadge : t.common.guestLabel}
             </div>
           </div>
 
@@ -489,13 +498,13 @@ export function AuthDemoPage() {
             <div className="rounded-[2rem] border border-zinc-200/70 bg-white p-6 shadow-soft sm:p-7">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium text-zinc-500">Authentication control</p>
+                  <p className="text-sm font-medium text-zinc-500">{t.auth.controlLabel}</p>
                   <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-zinc-950">
-                    {isAuthenticated ? "Backend-issued JWT ready" : "Sign in"}
+                    {isAuthenticated ? t.auth.jwtReady : t.auth.signIn}
                   </h2>
                 </div>
                 <div className="rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-xs uppercase tracking-[0.24em] text-zinc-600">
-                  {isAuthenticated ? "active" : "guest"}
+                  {isAuthenticated ? t.common.active : t.common.guest}
                 </div>
               </div>
 
@@ -504,21 +513,21 @@ export function AuthDemoPage() {
                   <div className="rounded-[1.5rem] border border-zinc-200/70 bg-zinc-50 p-5 shadow-sm">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Session</p>
+                        <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">{t.common.session}</p>
                         <p className="mt-2 text-lg font-semibold text-zinc-950">
-                          {idTokenClaims ? "Signed in with Google" : "Signed in"}
+                          {idTokenClaims ? t.auth.signedInWithGoogle : t.auth.signedIn}
                         </p>
                       </div>
                       <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-                        active
+                        {t.common.active}
                       </span>
                     </div>
                     <dl className="mt-5 space-y-3 text-sm">
                       {[
-                        ["Provider", authProviderLabel],
-                        ["Username", tokenState?.user.username || "Not provided"],
-                        ["Email", tokenState?.user.email || "Not provided"],
-                        ["Token expiry", tokenExpiry],
+                        [t.common.provider, authProviderLabel],
+                        [t.common.username, tokenState?.user.username || t.common.notProvided],
+                        [t.common.email, tokenState?.user.email || t.common.notProvided],
+                        [t.auth.tokenExpiry, tokenExpiry],
                       ].map(([label, value]) => (
                         <div key={label} className="flex items-start justify-between gap-4">
                           <dt className="text-zinc-500">{label}</dt>
@@ -528,13 +537,13 @@ export function AuthDemoPage() {
                     </dl>
                     <div className="mt-6 grid gap-3 sm:grid-cols-2">
                       <Button type="button" variant="secondary" className="hover:border-zinc-300 hover:bg-white hover:shadow-sm" onClick={handleSignOut}>
-                        Sign Out
+                        {t.auth.signOut}
                       </Button>
                       <Link
                         to="/demo/app"
                         className="inline-flex items-center justify-center rounded-full bg-zinc-950 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all duration-300 ease-soft hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md"
                       >
-                        Open Auction App
+                        {t.auth.openAuctionApp}
                       </Link>
                     </div>
                   </div>
@@ -543,9 +552,9 @@ export function AuthDemoPage() {
                     {!isRegisterMode ? (
                       <form className="space-y-4" onSubmit={handleLogin}>
                         <label className="block text-sm text-zinc-600">
-                          Username or email
+                          {t.auth.usernameOrEmail}
                           <input
-                            aria-label="Username or email"
+                            aria-label={t.auth.usernameOrEmail}
                             className={inputClasses}
                             value={credentials.username}
                             onChange={(event) =>
@@ -554,9 +563,9 @@ export function AuthDemoPage() {
                           />
                         </label>
                         <label className="block text-sm text-zinc-600">
-                          Password
+                          {t.common.password}
                           <input
-                            aria-label="Password"
+                            aria-label={t.common.password}
                             type="password"
                             className={inputClasses}
                             value={credentials.password}
@@ -566,15 +575,15 @@ export function AuthDemoPage() {
                           />
                         </label>
                         <Button className="w-full shadow-sm hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md disabled:translate-y-0 disabled:opacity-60" type="submit" disabled={isAuthLoading}>
-                          {isAuthLoading ? "Processing" : "Sign In"}
+                          {isAuthLoading ? t.common.processing : t.auth.signInButton}
                         </Button>
                       </form>
                     ) : (
                       <form className="space-y-4" onSubmit={handleRegister}>
                         <label className="block text-sm text-zinc-600">
-                          Username
+                          {t.common.username}
                           <input
-                            aria-label="Register username"
+                            aria-label={t.auth.registerUsername}
                             className={inputClasses}
                             value={registration.username}
                             onChange={(event) =>
@@ -583,9 +592,9 @@ export function AuthDemoPage() {
                           />
                         </label>
                         <label className="block text-sm text-zinc-600">
-                          Email
+                          {t.common.email}
                           <input
-                            aria-label="Register email"
+                            aria-label={t.auth.registerEmail}
                             type="email"
                             className={inputClasses}
                             value={registration.email}
@@ -595,9 +604,9 @@ export function AuthDemoPage() {
                           />
                         </label>
                         <label className="block text-sm text-zinc-600">
-                          Password
+                          {t.common.password}
                           <input
-                            aria-label="Register password"
+                            aria-label={t.auth.registerPassword}
                             type="password"
                             className={inputClasses}
                             value={registration.password}
@@ -607,7 +616,7 @@ export function AuthDemoPage() {
                           />
                         </label>
                         <Button className="w-full shadow-sm hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md disabled:translate-y-0 disabled:opacity-60" type="submit" disabled={isRegistering}>
-                          {isRegistering ? "Processing" : "Create Account"}
+                          {isRegistering ? t.common.processing : t.auth.createAccount}
                         </Button>
                       </form>
                     )}
@@ -620,24 +629,24 @@ export function AuthDemoPage() {
                       }}
                       className="text-sm font-medium text-zinc-500 transition-colors duration-300 ease-soft hover:text-zinc-950"
                     >
-                      {isRegisterMode ? "Already have an account? Sign in" : "Need an account? Create one"}
+                      {isRegisterMode ? t.auth.alreadyHaveAccount : t.auth.needAccount}
                     </button>
 
                     <div className="flex items-center gap-4">
                       <div className="h-px flex-1 bg-zinc-200" />
-                      <span className="text-xs uppercase tracking-[0.24em] text-zinc-400">or</span>
+                      <span className="text-xs uppercase tracking-[0.24em] text-zinc-400">{t.auth.or}</span>
                       <div className="h-px flex-1 bg-zinc-200" />
                     </div>
 
                     {oidcStage === "prepared" ? (
                       <Button type="button" className="w-full gap-3 border-blue-100 bg-blue-50 text-blue-800 shadow-sm hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-100 hover:shadow-md" variant="secondary" onClick={handleContinueToGoogle}>
-                        Continue to Google
+                        {t.auth.continueGoogle}
                         <ArrowRightIcon />
                       </Button>
                     ) : (
                       <Button type="button" className="w-full gap-3 shadow-sm hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md" variant="secondary" onClick={handleGoogleLogin}>
                         <GoogleIcon />
-                        Sign in with Google
+                        {t.auth.signInGoogle}
                       </Button>
                     )}
                     <NoticeCard notice={authNotice} />
@@ -649,9 +658,9 @@ export function AuthDemoPage() {
             <div className="rounded-[2rem] border border-zinc-200/70 bg-white p-6 shadow-soft sm:p-7">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium text-zinc-500">Flow status</p>
+                  <p className="text-sm font-medium text-zinc-500">{t.auth.flowStatus}</p>
                   <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-zinc-950">
-                    {isLocalSession ? "Local JWT auth" : "OIDC pipeline"}
+                    {isLocalSession ? t.auth.localJwtAuth : t.auth.oidcPipeline}
                   </h2>
                 </div>
                 <div
@@ -668,7 +677,7 @@ export function AuthDemoPage() {
                           : "bg-zinc-100 text-zinc-500",
                   ].join(" ")}
                 >
-                  {isGoogleFlowComplete ? "OIDC complete" : isLocalSession ? "Local auth" : oidcStage === "prepared" ? "Ready" : oidcStage === "redirecting" ? "Continuing" : "Idle"}
+                  {isGoogleFlowComplete ? t.auth.oidcComplete : isLocalSession ? t.auth.localAuth : oidcStage === "prepared" ? t.common.ready : oidcStage === "redirecting" ? t.auth.continuing : t.auth.idle}
                 </div>
               </div>
 
@@ -699,7 +708,7 @@ export function AuthDemoPage() {
                             : "bg-zinc-100 text-zinc-500",
                       ].join(" ")}
                     >
-                      {state === "done" ? "ok" : state === "ready" ? "ready" : state === "active" ? "pending" : "wait"}
+                      {state === "done" ? t.common.ok : state === "ready" ? t.common.ready : state === "active" ? t.common.pending : t.common.wait}
                     </span>
                   </div>
                 ))}
@@ -709,22 +718,22 @@ export function AuthDemoPage() {
 
           <div className="rounded-[2rem] border border-zinc-200/70 bg-white p-6 shadow-soft sm:p-7">
             <div>
-              <p className="text-sm font-medium text-zinc-500">Token inspector</p>
+              <p className="text-sm font-medium text-zinc-500">{t.auth.tokenInspector}</p>
               <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-zinc-950">
-                Verified claims and backend-issued JWT.
+                {t.auth.tokenInspectorTitle}
               </h2>
             </div>
 
             <div className="mt-5 grid gap-5 lg:grid-cols-2">
               <div className="rounded-[1.5rem] border border-zinc-200/70 bg-zinc-50 p-5">
-                <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Google ID token claims</p>
+                <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">{t.auth.googleClaims}</p>
                 <div className="mt-4 grid gap-3 text-sm">
                   {[
-                    ["sub", idTokenClaims?.sub ?? "Not available"],
-                    ["email", idTokenClaims?.email ?? tokenState?.user.email ?? "Not available"],
-                    ["iss", idTokenClaims?.iss ?? "Not available"],
-                    ["aud", idTokenClaims?.aud ?? "Not available"],
-                    ["exp", formatUnixTimestamp(idTokenClaims?.exp)],
+                    ["sub", idTokenClaims?.sub ?? t.common.notAvailable],
+                    ["email", idTokenClaims?.email ?? tokenState?.user.email ?? t.common.notAvailable],
+                    ["iss", idTokenClaims?.iss ?? t.common.notAvailable],
+                    ["aud", idTokenClaims?.aud ?? t.common.notAvailable],
+                    ["exp", formatUnixTimestamp(idTokenClaims?.exp, t.common.notProvided)],
                   ].map(([label, value]) => (
                     <div key={label} className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-3">
                       <span className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-400">{label}</span>
@@ -735,16 +744,16 @@ export function AuthDemoPage() {
               </div>
 
               <div className="rounded-[1.5rem] border border-zinc-200/70 bg-zinc-50 p-5">
-                <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Backend-issued JWT</p>
+                <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">{t.auth.backendJwt}</p>
                 <div className="mt-4 grid gap-3 text-sm">
                   {[
-                    ["user_id", String(decodedAccessToken?.user_id ?? tokenState?.user.id ?? "Not available")],
+                    ["user_id", String(decodedAccessToken?.user_id ?? tokenState?.user.id ?? t.common.notAvailable)],
                     ["token_type", String(decodedAccessToken?.token_type ?? "access")],
                     [
                       "exp",
                       typeof decodedAccessToken?.exp === "number"
                         ? formatUnixTimestamp(decodedAccessToken.exp)
-                        : "Not available",
+                        : t.common.notAvailable,
                     ],
                   ].map(([label, value]) => (
                     <div key={label} className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-3">

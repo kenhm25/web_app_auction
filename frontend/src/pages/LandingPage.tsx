@@ -1,27 +1,11 @@
 import { Link } from "react-router-dom";
 import { Button } from "../components/ui/Button";
 import { Section } from "../components/ui/Section";
-
-const platformRows = [
-  ["Frontend", "React + Vite + TypeScript"],
-  ["Application", "Django REST Framework"],
-  ["Authentication", "Simple JWT"],
-  ["Auth Standards", "OAuth 2.0 + OpenID Connect"],
-  ["Database", "PostgreSQL"],
-  ["Container", "Docker + Gunicorn"],
-  ["Orchestration", "Kubernetes manifests"],
-];
-
-const cicdSteps = [
-  ["Code Commit", "Developers push changes to GitHub repository", "bg-blue-50 text-blue-700"],
-  ["CI Trigger", "GitHub Actions runs tests and builds", "bg-emerald-50 text-emerald-700"],
-  ["Docker Build", "Backend & frontend containers are built and tagged", "bg-cyan-50 text-cyan-700"],
-  ["Push to Registry", "Containers pushed to Docker Hub / GCP Artifact Registry", "bg-amber-50 text-amber-700"],
-  ["Kubernetes Deployment", "GKE applies manifests", "bg-indigo-50 text-indigo-700"],
-  ["Live Demo", "Changes live with health checks and observability", "bg-zinc-950 text-white"],
-];
+import { useLanguage } from "../i18n/LanguageContext";
 
 export function LandingPage() {
+  const { t } = useLanguage();
+
   return (
     <>
       <style>
@@ -166,21 +150,21 @@ export function LandingPage() {
 
         <div className="relative mx-auto max-w-4xl text-center">
           <p className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-blue-700 shadow-sm">
-            Auction System Showcase
+            {t.landing.eyebrow}
           </p>
           <h1 className="mt-8 text-5xl font-semibold leading-[1.04] tracking-[-0.05em] text-zinc-950 sm:text-6xl lg:text-7xl">
-            Secure bidding with Google OIDC and transaction-safe backend.
+            {t.landing.title}
           </h1>
           <p className="mx-auto mt-7 max-w-2xl text-lg leading-8 text-zinc-600 sm:text-xl">
-            A demo showcasing Google login, JWT authentication, and concurrency-safe auctions.
+            {t.landing.subtitle}
           </p>
           <div className="mt-9 flex flex-col justify-center gap-4 sm:flex-row">
             <Link to="/demo">
-              <Button className="w-full hover:-translate-y-0.5 hover:shadow-md sm:w-auto">Open API Demo</Button>
+              <Button className="w-full hover:-translate-y-0.5 hover:shadow-md sm:w-auto">{t.landing.openApiDemo}</Button>
             </Link>
             <Link to="/race-condition">
               <Button variant="secondary" className="w-full hover:-translate-y-0.5 hover:shadow-md sm:w-auto">
-                View Locking Demo
+                {t.landing.viewLockingDemo}
               </Button>
             </Link>
           </div>
@@ -190,14 +174,14 @@ export function LandingPage() {
       <Section className="bg-zinc-50/70">
         <div className="grid items-start gap-8 lg:grid-cols-[0.82fr_1.18fr]">
           <div className="space-y-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.34em] text-blue-600">Platform Stack</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.34em] text-blue-600">{t.landing.stackEyebrow}</p>
             <h2 className="text-4xl font-semibold tracking-[-0.04em] text-zinc-950 sm:text-5xl">
-              Each layer plays a clear role.
+              {t.landing.stackTitle}
             </h2>
           </div>
           <div className="rounded-[2rem] border border-zinc-200/70 bg-white p-7 shadow-soft sm:p-10">
             <dl className="space-y-0">
-              {platformRows.map(([label, value]) => (
+              {t.landing.platformRows.map(([label, value]) => (
                 <div
                   key={label}
                   className="flex flex-col gap-3 border-b border-zinc-100 py-6 transition-transform transition-colors duration-300 ease-soft first:pt-0 last:border-b-0 last:pb-0 hover:-translate-y-1 hover:translate-x-1 hover:bg-zinc-100/70 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-8"
@@ -215,19 +199,19 @@ export function LandingPage() {
 
       <Section className="bg-white">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.34em] text-blue-600">Delivery Flow</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.34em] text-blue-600">{t.landing.deliveryEyebrow}</p>
           <h2 className="mt-5 text-4xl font-semibold tracking-[-0.04em] text-zinc-950 sm:text-5xl">
-            CI/CD Pipeline Overview
+            {t.landing.deliveryTitle}
           </h2>
           <p className="mt-5 text-lg leading-8 text-zinc-600">
-            From code commit to deployment, our pipeline ensures safe, automated delivery.
+            {t.landing.deliveryBody}
           </p>
         </div>
 
         <div className="relative mt-14">
           <div className="absolute left-5 top-8 hidden h-px w-[calc(100%-2.5rem)] bg-zinc-200 lg:block" />
           <div className="grid gap-4 lg:grid-cols-6">
-            {cicdSteps.map(([title, detail, badgeClasses], index) => (
+            {t.landing.cicdSteps.map(([title, detail, badgeClasses], index) => (
             <article
               key={title}
               className="cicd-step-card relative rounded-[1.5rem] border border-zinc-200/70 bg-white p-5 opacity-0 shadow-sm transition-transform duration-300 ease-soft hover:-translate-y-0.5 hover:shadow-soft"
@@ -237,7 +221,7 @@ export function LandingPage() {
                   {index + 1}
                 </span>
                 <span className={["rounded-full px-3 py-1 text-xs font-medium", badgeClasses].join(" ")}>
-                  Step
+                  {t.common.step}
                 </span>
               </div>
               <h3 className="mt-6 text-xl font-semibold tracking-[-0.03em] text-zinc-950">{title}</h3>
@@ -254,7 +238,7 @@ export function LandingPage() {
             target="_blank"
             rel="noreferrer"
           >
-            View CI/CD workflow
+            {t.landing.viewWorkflow}
           </a>
         </div>
       </Section>
