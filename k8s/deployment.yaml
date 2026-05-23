@@ -46,6 +46,34 @@ spec:
 
             - name: CSRF_TRUSTED_ORIGINS
               value: "https://ken-auction.duckdns.org"
+
+            - name: GOOGLE_OAUTH_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: django-secret
+                  key: GOOGLE_OAUTH_CLIENT_ID
+                  optional: true
+
+            - name: GOOGLE_OAUTH_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: django-secret
+                  key: GOOGLE_OAUTH_CLIENT_SECRET
+                  optional: true
+
+            - name: GOOGLE_OAUTH_REDIRECT_URI
+              valueFrom:
+                secretKeyRef:
+                  name: django-secret
+                  key: GOOGLE_OAUTH_REDIRECT_URI
+                  optional: true
+
+            - name: FRONTEND_OAUTH_REDIRECT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: django-secret
+                  key: FRONTEND_OAUTH_REDIRECT_URL
+                  optional: true
           ports:
             - containerPort: 8000
           

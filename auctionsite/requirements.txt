@@ -7,3 +7,5 @@ typing_extensions==4.15.0
 gunicorn
 djangorestframework-simplejwt
 drf-spectacular
+google-auth
+requests
