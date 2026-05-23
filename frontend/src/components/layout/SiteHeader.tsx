@@ -2,8 +2,9 @@ import { NavLink } from "react-router-dom";
 
 const navItems = [
   { label: "Overview", to: "/" },
-  { label: "Demo", to: "/demo" },
-  { label: "Race Demo", to: "/race-condition" },
+  { label: "Auth Showcase", to: "/demo/auth" },
+  { label: "Auction App", to: "/demo/app" },
+  { label: "Race Condition Demo", to: "/race-condition" },
   { label: "Architecture", to: "/architecture" },
 ];
 
@@ -14,7 +15,7 @@ export function SiteHeader() {
         <NavLink className="text-sm font-semibold tracking-[0.24em] text-zinc-950" to="/">
           AUCTION SYSTEM
         </NavLink>
-        <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-zinc-500">
+        <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-zinc-500 sm:justify-end">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
