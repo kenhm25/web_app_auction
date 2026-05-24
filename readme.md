@@ -58,13 +58,45 @@ Client
 | --- | --- | --- |
 | Frontend | Product demo UI, API-backed interaction, architecture pages | React, TypeScript, Vite |
 | Backend API | REST endpoints, authentication, validation, business rules | Django, Django REST Framework |
-| Authentication | Registration, JWT login, protected API access | DRF SimpleJWT |
+| Authentication | Google OIDC login, JWT issuance, protected API access | OAuth 2.0, OpenID Connect, DRF SimpleJWT |
 | Consistency Layer | Bid validation, atomic writes, row-level locking | Django transactions, PostgreSQL |
 | Database | Products, bids, users, relational constraints | PostgreSQL, Django ORM |
 | Runtime | Containerized services and API process management | Docker, Docker Compose, Gunicorn |
 | Deployment | Workload orchestration, service routing, rollout | Kubernetes, Ingress, Services, GKE |
 
 The backend exposes a small but production-shaped API surface: user registration, JWT login, product listing/creation, authenticated bid placement, and user profile access. The implementation keeps business rules close to the transaction boundary so correctness does not depend on client behavior or request timing.
+
+---
+
+## Authentication Architecture
+
+Google authentication uses OpenID Connect (OIDC) built on top of the OAuth 2.0 Authorization Code Flow with Google as the external identity provider. The browser participates in the redirect flow, but the backend owns the token exchange, ID token verification, user mapping, and application JWT issuance.
+
+<p align="center">
+  <img src="./assets/readme/OIDC_arch.png" width="920" alt="Google OIDC authentication architecture"/>
+</p>
+
+The design keeps identity-provider credentials and raw Google token handling inside the backend boundary. After the backend verifies the Google ID token, API access continues through backend-issued JWTs, preserving the same stateless bearer-token boundary used by the rest of the DRF API.
+
+Responsibilities are separated by system boundary:
+
+- **Frontend**: starts the login flow, receives the backend-issued JWT, and sends authenticated API requests with a bearer token.
+- **Backend API**: exchanges the authorization code, verifies the ID token, maps the Google identity to an application user, and issues JWTs.
+- **Google**: authenticates the user and returns identity tokens to the backend through the OAuth token endpoint.
+- **Database**: stores application users, products, bids, and auction state; it does not store raw Google access tokens.
+
+Authentication flow:
+
+1. The frontend redirects the user to the backend Google login endpoint.
+2. The backend starts the OAuth 2.0 Authorization Code Flow with Google.
+3. Google authenticates the user and redirects back with an authorization code.
+4. The backend exchanges the code with Google server-side.
+5. The backend verifies the returned Google ID token.
+6. The backend creates or loads the application user.
+7. The backend issues application JWTs for stateless API authentication.
+8. The frontend uses the backend JWT for subsequent DRF API requests.
+
+This keeps the frontend decoupled from provider-specific token handling while allowing the backend to enforce a single application authentication boundary.
 
 ---
 

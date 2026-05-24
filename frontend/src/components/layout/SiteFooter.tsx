@@ -46,13 +46,13 @@ export function SiteFooter() {
           <a className={footerLinkClass} href="/api/docs/" target="_blank" rel="noreferrer">
             {t.footer.apiDocs}
           </a>
-          <a className={footerLinkClass} href="/api/schema/" target="_blank" rel="noreferrer">
+          <a className={footerLinkClass} href="/api/redoc/" target="_blank" rel="noreferrer">
             {t.footer.openApi}
           </a>
-          <a className={footerLinkClass} href="https://www.linkedin.com/in/kenhu25" target="_blank" rel="noreferrer">
+          {/* <a className={footerLinkClass} href="https://www.linkedin.com/in/kenhu25" target="_blank" rel="noreferrer">
             <LinkedInIcon />
             LinkedIn
-          </a>
+          </a> */}
           <a className={footerLinkClass} href="https://github.com/kenhm25/web_app_auction" target="_blank" rel="noreferrer">
             <GitHubIcon />
             GitHub Repository

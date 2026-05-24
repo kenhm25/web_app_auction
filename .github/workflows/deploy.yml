@@ -119,8 +119,6 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile.prod
           push: true
-          build-args: |
-            VITE_DOCS_BASE_URL=/api/docs/
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/${{ env.FRONTEND_IMAGE_NAME }}:latest
             ${{ secrets.DOCKER_USERNAME }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ steps.vars.outputs.sha_short }}
