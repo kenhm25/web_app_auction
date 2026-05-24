@@ -171,31 +171,7 @@ export function LandingPage() {
         </div>
       </Section>
 
-      <Section className="bg-zinc-50/70">
-        <div className="grid items-start gap-8 lg:grid-cols-[0.82fr_1.18fr]">
-          <div className="space-y-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.34em] text-blue-600">{t.landing.stackEyebrow}</p>
-            <h2 className="text-4xl font-semibold tracking-[-0.04em] text-zinc-950 sm:text-5xl">
-              {t.landing.stackTitle}
-            </h2>
-          </div>
-          <div className="rounded-[2rem] border border-zinc-200/70 bg-white p-7 shadow-soft sm:p-10">
-            <dl className="space-y-0">
-              {t.landing.platformRows.map(([label, value]) => (
-                <div
-                  key={label}
-                  className="flex flex-col gap-3 border-b border-zinc-100 py-6 transition-transform transition-colors duration-300 ease-soft first:pt-0 last:border-b-0 last:pb-0 hover:-translate-y-1 hover:translate-x-1 hover:bg-zinc-100/70 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-8"
-                >
-                  <dt className="text-sm uppercase tracking-[0.34em] text-zinc-400">{label}</dt>
-                  <dd className="text-left text-xl font-medium tracking-[-0.03em] text-zinc-950 sm:text-right sm:text-m">
-                    {value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        </div>
-      </Section>
+      
 
       <Section className="bg-white">
         <div className="mx-auto max-w-3xl text-center">
@@ -240,6 +216,32 @@ export function LandingPage() {
           >
             {t.landing.viewWorkflow}
           </a>
+        </div>
+      </Section>
+
+      <Section className="bg-zinc-50/70">
+        <div className="grid items-start gap-8 lg:grid-cols-[0.82fr_1.18fr]">
+          <div className="space-y-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.34em] text-blue-600">{t.landing.stackEyebrow}</p>
+            <h2 className="text-4xl font-semibold tracking-[-0.04em] text-zinc-950 sm:text-5xl">
+              {t.landing.stackTitle}
+            </h2>
+          </div>
+          <div className="rounded-[2rem] border border-zinc-200/70 bg-white p-7 shadow-soft sm:p-10">
+            <dl className="space-y-0">
+              {t.landing.platformRows.map(([label, value]) => (
+                <div
+                  key={label}
+                  className="flex flex-col gap-3 border-b border-zinc-100 py-6 transition-transform transition-colors duration-300 ease-soft first:pt-0 last:border-b-0 last:pb-0 hover:-translate-y-1 hover:translate-x-1 hover:bg-zinc-100/70 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-8"
+                >
+                  <dt className="text-sm uppercase tracking-[0.34em] text-zinc-400">{label}</dt>
+                  <dd className="text-left text-xl font-medium tracking-[-0.03em] text-zinc-950 sm:text-right sm:text-m">
+                    {value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
         </div>
       </Section>
     </>
