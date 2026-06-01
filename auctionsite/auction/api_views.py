@@ -21,6 +21,8 @@ import json
 import re
 import secrets
 import requests as http_requests
+import hashlib
+import base64
 
 class ProductListCreateView(generics.ListCreateAPIView):
     queryset = Product.objects.all()
@@ -137,6 +139,18 @@ class GoogleOAuthStartAPIView(APIView):
         oidc_nonce = secrets.token_urlsafe(32)
         request.session["google_oauth_nonce"] = oidc_nonce
 
+        # Generate a unique code verifier for the OAuth pkce
+        # code_verifier 是 OAuth pkce 用的 code verifier
+        code_verifier = secrets.token_urlsafe(64)
+        request.session[
+            "google_oauth_code_verifier"
+        ] = code_verifier
+        code_challenge = base64.urlsafe_b64encode(
+            hashlib.sha256(
+                code_verifier.encode()
+            ).digest()
+        ).decode().rstrip("=")
+
         state = signing.TimestampSigner(salt=GOOGLE_OAUTH_STATE_SALT).sign(state_nonce)
         params = {
             "client_id": config["client_id"],
@@ -146,6 +160,8 @@ class GoogleOAuthStartAPIView(APIView):
             "prompt": "consent",
             "state": state,
             "nonce": oidc_nonce,
+            "code_challenge": code_challenge,
+            "code_challenge_method": "S256",
         }
 
         google_auth_url = (
@@ -201,6 +217,16 @@ class GoogleOAuthCallbackAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        code_verifier = request.session.pop(
+            "google_oauth_code_verifier",
+            None
+        )
+        if not code_verifier:
+            return Response(
+                {"detail": "Code verifier not found in session."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         try:
             token_response = http_requests.post(
                 "https://oauth2.googleapis.com/token",
@@ -210,6 +236,7 @@ class GoogleOAuthCallbackAPIView(APIView):
                     "client_secret": config["client_secret"],
                     "redirect_uri": config["redirect_uri"],
                     "grant_type": "authorization_code",
+                    "code_verifier": code_verifier,
                 },
                 timeout=10,
             )
