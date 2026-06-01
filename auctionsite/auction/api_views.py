@@ -127,8 +127,16 @@ class GoogleOAuthStartAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+        # Generate a unique nonce for the OAuth state
+        # state_nonce 是 OAuth state 用的 nonce
         state_nonce = secrets.token_urlsafe(32)
         request.session["google_oauth_state"] = state_nonce
+
+        # Generate a unique nonce for the OIDC flow
+        # oidc_nonce 是 ID token replay 防護用的 OIDC nonce
+        oidc_nonce = secrets.token_urlsafe(32)
+        request.session["google_oauth_nonce"] = oidc_nonce
+
         state = signing.TimestampSigner(salt=GOOGLE_OAUTH_STATE_SALT).sign(state_nonce)
         params = {
             "client_id": config["client_id"],
@@ -137,6 +145,7 @@ class GoogleOAuthStartAPIView(APIView):
             "scope": "openid email profile",
             "prompt": "consent",
             "state": state,
+            "nonce": oidc_nonce,
         }
 
         google_auth_url = (
@@ -241,6 +250,15 @@ class GoogleOAuthCallbackAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        expected_oidc_nonce = request.session.pop("google_oauth_nonce", None)
+        id_token_nonce = idinfo.get("nonce")
+
+        if not expected_oidc_nonce or not id_token_nonce or not secrets.compare_digest(id_token_nonce, expected_oidc_nonce):
+            return Response(
+                {"detail": "OIDC nonce did not match the current browser session."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+            
         email = idinfo.get("email")
         if not email:
             return Response(

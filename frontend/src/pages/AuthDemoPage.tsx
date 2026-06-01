@@ -278,8 +278,8 @@ export function AuthDemoPage() {
         title: t.auth.oidcCallbackProcessed,
         method: "SERVER",
         url: "/api/auth/google/callback/?code=REDACTED",
-        payload: { code: "REDACTED" },
-        response: { authorization_code_received: true },
+        payload: { code: "REDACTED", state: "VERIFIED_ONCE_FROM_SESSION" },
+        response: { authorization_code_received: true, state_verified: true },
         status: 302,
         category: "oidc",
         summary: t.auth.oidcCallbackProcessedSummary,
@@ -308,7 +308,9 @@ export function AuthDemoPage() {
         title: t.auth.googleIdTokenVerified,
         method: "SERVER",
         url: "google.oauth2.id_token.verify_oauth2_token",
-        response: claims ?? { verified: true, raw_token_exposed: false },
+        response: claims
+          ? { ...claims, nonce_verified: true }
+          : { verified: true, nonce_verified: true, raw_token_exposed: false },
         status: 200,
         category: "oidc",
         summary: t.auth.googleIdTokenVerifiedSummary,
@@ -318,6 +320,7 @@ export function AuthDemoPage() {
         method: "SERVER",
         url: "/api/auth/google/callback/",
         response: {
+          redirect_to_frontend: "/demo/auth",
           access: "REDACTED",
           refresh: "REDACTED",
           user: { id, username, email },
@@ -436,6 +439,8 @@ export function AuthDemoPage() {
         response_type: "code",
         scope: "openid email profile",
         prompt: "consent",
+        state: "SIGNED_AND_STORED_IN_SESSION",
+        nonce: "GENERATED_SERVER_SIDE",
       },
       response: { next_step: t.auth.continueGoogle },
       category: "oidc",
@@ -459,6 +464,8 @@ export function AuthDemoPage() {
         response_type: "code",
         scope: "openid email profile",
         prompt: "consent",
+        state: "SIGNED_AND_STORED_IN_SESSION",
+        nonce: "GENERATED_SERVER_SIDE",
       },
       response: { redirect_to: "https://accounts.google.com/o/oauth2/v2/auth" },
       status: 302,
@@ -734,6 +741,8 @@ export function AuthDemoPage() {
                     ["iss", idTokenClaims?.iss ?? t.common.notAvailable],
                     ["aud", idTokenClaims?.aud ?? t.common.notAvailable],
                     ["exp", formatUnixTimestamp(idTokenClaims?.exp, t.common.notProvided)],
+                    ["state", isGoogleFlowComplete ? t.auth.stateVerified : t.common.notAvailable],
+                    ["nonce", isGoogleFlowComplete ? t.auth.nonceVerified : t.common.notAvailable],
                   ].map(([label, value]) => (
                     <div key={label} className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-3">
                       <span className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-400">{label}</span>
