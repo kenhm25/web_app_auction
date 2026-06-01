@@ -139,10 +139,7 @@ jobs:
         with:
           workload_identity_provider: projects/442096730761/locations/global/workloadIdentityPools/github-pool/providers/github-provider
           service_account: github-actions@auction-project-492406.iam.gserviceaccount.com
-      
-      - name: Verify identity
-        run: |
-          gcloud auth list
+
 
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2
