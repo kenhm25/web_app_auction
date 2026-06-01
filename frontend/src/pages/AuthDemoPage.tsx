@@ -294,6 +294,7 @@ export function AuthDemoPage() {
           client_id: "REDACTED",
           client_secret: "REDACTED",
           redirect_uri: googleOAuthCallbackUrl,
+          code_verifier: "VERIFIED_ONCE_FROM_SESSION",
         },
         response: {
           access_token: "REDACTED",
@@ -441,6 +442,9 @@ export function AuthDemoPage() {
         prompt: "consent",
         state: "SIGNED_AND_STORED_IN_SESSION",
         nonce: "GENERATED_SERVER_SIDE",
+        code_verifier: "GENERATED_AND_STORED_IN_SESSION",
+        code_challenge: "DERIVED_WITH_S256",
+        code_challenge_method: "S256",
       },
       response: { next_step: t.auth.continueGoogle },
       category: "oidc",
@@ -466,6 +470,8 @@ export function AuthDemoPage() {
         prompt: "consent",
         state: "SIGNED_AND_STORED_IN_SESSION",
         nonce: "GENERATED_SERVER_SIDE",
+        code_challenge: "DERIVED_WITH_S256",
+        code_challenge_method: "S256",
       },
       response: { redirect_to: "https://accounts.google.com/o/oauth2/v2/auth" },
       status: 302,
@@ -743,8 +749,10 @@ export function AuthDemoPage() {
                     ["exp", formatUnixTimestamp(idTokenClaims?.exp, t.common.notProvided)],
                     ["state", isGoogleFlowComplete ? t.auth.stateVerified : t.common.notAvailable],
                     ["nonce", isGoogleFlowComplete ? t.auth.nonceVerified : t.common.notAvailable],
+                    ["pkce", isGoogleFlowComplete ? t.auth.pkceVerified : t.common.notAvailable],
+                    ["code_verifier", isGoogleFlowComplete ? t.auth.codeVerifierVerified : t.common.notAvailable],
                   ].map(([label, value]) => (
-                    <div key={label} className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-3">
+                    <div key={label} className="grid grid-cols-[9rem_minmax(0,1fr)] gap-3">
                       <span className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-400">{label}</span>
                       <span className="min-w-0 break-words text-zinc-800">{value}</span>
                     </div>
