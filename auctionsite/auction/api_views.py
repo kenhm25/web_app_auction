@@ -1,3 +1,5 @@
+from functools import cache
+from django.core.serializers import serialize
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
@@ -12,6 +14,7 @@ from drf_spectacular.utils import extend_schema
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core import signing
+from django.core.cache import cache
 from django.shortcuts import redirect
 from google.auth.transport import requests
 from google.oauth2 import id_token
@@ -28,10 +31,24 @@ class ProductListCreateView(generics.ListCreateAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+    def list(self, request, *args, **kwargs):
+        key = "products:list"
+        cached = cache.get(key)
+        if cached is not None:
+            return Response(cached)
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many = True)
+        data = serializer.data
+        cache.set(
+            key,
+            data,
+            timeout=300
+        )
+        return Response(data)
 
     def perform_create(self, serializer):
         serializer.save(seller=self.request.user)
-
+        cache.delete("products:list")
 
 
 class BidCreateView(APIView):

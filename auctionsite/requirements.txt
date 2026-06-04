@@ -9,3 +9,4 @@ djangorestframework-simplejwt
 drf-spectacular
 google-auth
 requests
+django-redis
