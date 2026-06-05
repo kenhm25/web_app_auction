@@ -29,6 +29,9 @@ spec:
               gunicorn auctionsite.wsgi:application --bind 0.0.0.0:8000
 
           env:
+            - name: REDIS_HOST
+              value: redis-service
+              
             - name: SECRET_KEY
               valueFrom:
                 secretKeyRef:
