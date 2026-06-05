@@ -61,12 +61,12 @@ jobs:
         run: pip install -r auctionsite/requirements.txt
 
       - name: Run Django migrations
-        run: python auctionsite/manage.py migrate
+        working-directory: auctionsite
+        run: python manage.py migrate
 
       - name: Run Django tests
-        run: |
-          ls -R auctionsite/auction
-          python auctionsite/manage.py test
+        working-directory: auctionsite
+        run: python manage.py test auction -v 2
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
