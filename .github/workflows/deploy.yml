@@ -17,7 +17,7 @@ env:
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "22"
   CLUSTER_NAME: auction-cluster
-  CLUSTER_REGION: asia-east1
+  CLUSTER_ZONE: asia-east1-a
   BACKEND_IMAGE_NAME: auction-api
   FRONTEND_IMAGE_NAME: auction-frontend
 
@@ -157,7 +157,7 @@ jobs:
       - name: Get GKE cluster credentials
         run: |
           gcloud container clusters get-credentials "${{ env.CLUSTER_NAME }}" \
-            --region "${{ env.CLUSTER_REGION }}" \
+            --zone "${{ env.CLUSTER_ZONE }}" \
             --project "${{ secrets.GCP_PROJECT_ID }}"
 
       - name: Apply Kubernetes manifests
