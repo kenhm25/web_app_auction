@@ -3,11 +3,13 @@ from rest_framework import status
 from django.contrib.auth import get_user_model
 from .models import Product, Bid
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.core.cache import cache
+from django.conf import settings
 
 User = get_user_model()
 
 
-class BidAPITestCase(APITestCase):
+class ProductAPITestCase(APITestCase):
 
     def setUp(self):
         self.user = User.objects.create_user(
@@ -71,3 +73,68 @@ class BidAPITestCase(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["current_highest_bid"], "300.00")
+    
+    def test_product_list_creates_cache(self):
+        cache.clear()
+
+        response = self.client.get("/api/products/")
+        key = "products:list"
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNotNone(cache.get(key))
+
+    def test_create_product_invalidates_cache(self):
+        self.authenticate()
+        cache.clear()
+        key = "products:list"
+
+        cache.set(
+            key,
+            {"test": "data"},
+            timeout=300
+        )
+        response = self.client.post(
+            "/api/products/",
+            {
+                "title": "Camera",
+                "description": "Mirrorless camera",
+                "starting_bid": "300.00",
+                "image_url": "",
+                "location": "Taipei",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertIsNone(cache.get(key))
+
+    def test_cache_rebuilt_after_invalidation(self):
+        self.authenticate()
+        cache.clear()
+        key = "products:list"
+
+        response = self.client.get("/api/products/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNotNone(cache.get(key))
+
+        response = self.client.post(
+            "/api/products/",
+            {
+                "title": "Camera",
+                "description": "Mirrorless camera",
+                "starting_bid": "300.00",
+                "image_url": "",
+                "location": "Taipei",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertIsNone(cache.get(key))
+
+        response = self.client.get("/api/products/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNotNone(cache.get(key))
+
+    def test_cache_backend_is_redis(self):
+        self.assertIn(
+            "django_redis",
+            settings.CACHES["default"]["BACKEND"]
+        )
