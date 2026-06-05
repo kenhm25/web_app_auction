@@ -1,5 +1,3 @@
-from functools import cache
-from django.core.serializers import serialize
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
@@ -83,6 +81,7 @@ class BidCreateView(APIView):
                 bid_amount=bid_amount,
             )
 
+        cache.delete("products:list")
         return Response(
             {"id": bid.id, "bid_amount": str(bid.bid_amount)},
             status=201,

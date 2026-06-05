@@ -31,7 +31,7 @@ spec:
           env:
             - name: REDIS_HOST
               value: redis-service
-              
+
             - name: SECRET_KEY
               valueFrom:
                 secretKeyRef:

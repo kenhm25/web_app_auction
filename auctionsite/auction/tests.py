@@ -73,7 +73,7 @@ class ProductAPITestCase(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["current_highest_bid"], "300.00")
-    
+
     def test_product_list_creates_cache(self):
         cache.clear()
 

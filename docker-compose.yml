@@ -22,6 +22,7 @@ services:
       dockerfile: Dockerfile
     environment:
       DB_HOST: db
+      REDIS_HOST: redis
     env_file:
       - .env
     ports:

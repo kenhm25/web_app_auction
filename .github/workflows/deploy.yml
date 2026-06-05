@@ -45,9 +45,9 @@ jobs:
           --health-retries 5
       redis:
         image: redis:7
-        ports: 
+        ports:
           - 6379:6379
-          
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
