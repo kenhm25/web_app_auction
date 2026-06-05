@@ -27,6 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DB_HOST: localhost
+      REDIS_HOST: localhost
 
     services:
       postgres:
@@ -42,7 +43,11 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
+      redis:
+        image: redis:7
+        ports: 
+          - 6379:6379
+          
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -158,6 +163,9 @@ jobs:
           kubectl apply -f k8s/postgres-secret.yaml
           kubectl apply -f k8s/postgres-service.yaml
           kubectl apply -f k8s/postgres-statefulset.yaml
+
+          kubectl apply -f k8s/redis-service.yaml
+          kubectl apply -f k8s/redis-deployment.yaml
           
           kubectl apply -f k8s/service.yaml
           kubectl apply -f k8s/deployment.yaml
