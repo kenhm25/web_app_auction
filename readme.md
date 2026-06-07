@@ -33,9 +33,11 @@ Client
 - **Transactional bid consistency**: bid placement protects the highest-bid invariant with `transaction.atomic()` and `select_for_update()`.
 - **Stateless REST API boundary**: authenticated requests use JWT bearer tokens instead of server-side session state.
 - **PostgreSQL-backed correctness**: auction state is stored in a relational model with foreign keys, decimal bid values, and row-level locking.
+- **Redis-backed cache invalidation strategy**: product list reads are cached, with invalidation after product creation and bid updates.
 - **Containerized runtime**: backend and frontend are packaged as Docker images; the API runs behind Gunicorn.
 - **Kubernetes-native deployment**: workloads are exposed through Services and Ingress routing, with manifests for backend, frontend, and PostgreSQL.
 - **Concurrency test coverage**: transaction-aware tests verify that competing bid writes preserve the highest-bid invariant.
+- **Load-tested concurrent bidding workflow**: k6 validates the bidding path under concurrent writes against the same product.
 - **API documentation**: OpenAPI schema and Swagger UI are generated through `drf-spectacular`.
 
 ---
@@ -45,6 +47,7 @@ Client
 - Treat the highest bid as a database consistency invariant, not only an application-level check.
 - Use PostgreSQL row-level locking to serialize competing bid writes on the same product.
 - Keep the API stateless with JWT authentication and bearer-token authorization.
+- Cache product list reads through Redis while invalidating the cache on writes that change visible auction state.
 - Test concurrent bid behavior with transaction-aware backend tests, not only single-request API tests.
 - Separate frontend, backend, and database workloads for containerized deployment.
 - Route traffic through Kubernetes Services and Ingress instead of binding directly to pods.
@@ -59,12 +62,13 @@ Client
 | Frontend | Product demo UI, API-backed interaction, architecture pages | React, TypeScript, Vite |
 | Backend API | REST endpoints, authentication, validation, business rules | Django, Django REST Framework |
 | Authentication | Google OIDC login, JWT issuance, protected API access | OAuth 2.0, OpenID Connect, DRF SimpleJWT |
+| Cache Layer | Product list cache and write-driven invalidation | Redis, django-redis |
 | Consistency Layer | Bid validation, atomic writes, row-level locking | Django transactions, PostgreSQL |
 | Database | Products, bids, users, relational constraints | PostgreSQL, Django ORM |
 | Runtime | Containerized services and API process management | Docker, Docker Compose, Gunicorn |
 | Deployment | Workload orchestration, service routing, rollout | Kubernetes, Ingress, Services, GKE |
 
-The backend exposes a small but production-shaped API surface: user registration, JWT login, product listing/creation, authenticated bid placement, and user profile access. The implementation keeps business rules close to the transaction boundary so correctness does not depend on client behavior or request timing.
+The backend exposes a small but production-shaped API surface: user registration, JWT login, product listing/creation, authenticated bid placement, and user profile access. Product list reads are cached through Redis, while product creation and bid updates invalidate the cache so visible auction state does not drift after writes. The implementation keeps business rules close to the transaction boundary so correctness does not depend on client behavior or request timing.
 
 ---
 
@@ -173,10 +177,48 @@ Test coverage includes:
 - Bid amount validation against the current highest bid.
 - Database state assertions after successful writes.
 - Concurrent bid submission using multiple clients and independent database transactions.
+- Product list cache creation, invalidation, and rebuild behavior.
+- Redis cache backend configuration.
 
 The concurrency test uses `TransactionTestCase` to exercise transactional behavior against PostgreSQL. The expected invariant is that the final `current_highest_bid` matches the highest accepted bid, even when competing requests target the same product at nearly the same time.
 
 CI validates backend transactional behavior against PostgreSQL before container image publication and Kubernetes rollout.
+
+---
+
+## Load Testing and Consistency Validation
+
+Auction bid placement is a write-heavy path where correctness matters more than accepting every request. Under concurrent bidding, the system must preserve the invariant that the product's stored `current_highest_bid` matches the highest accepted bid record.
+
+The k6 load test targets the same product with concurrent bidders. This exercises the bid endpoint under contention and validates that `transaction.atomic()`, `select_for_update()`, and PostgreSQL row-level locking continue to serialize writes correctly when multiple requests compete for the same product row.
+
+Validation compares the highest persisted bid against the product's denormalized highest-bid field:
+
+```sql
+SELECT MAX(bid_amount)
+FROM auction_bid
+WHERE product_id = 1;
+
+SELECT current_highest_bid
+FROM auction_product
+WHERE id = 1;
+```
+
+Each run used the same product so all bidding requests competed for the same product row.
+
+| Concurrent Users | Requests | Throughput | Avg Latency | P95 Latency | Consistency |
+| --- | ---: | ---: | ---: | ---: | --- |
+| 100 | 13,789 | 456 req/s | 218 ms | 266 ms | Passed |
+| 500 | 14,771 | 473 req/s | 1.03 s | 1.18 s | Passed |
+| 1000 | 15,321 | 473 req/s | 2.03 s | 2.24 s | Passed |
+
+Across all runs, `MAX(bid_amount) = current_highest_bid`. This indicates that the concurrent bidding workflow did not produce a lost update or race-condition mismatch during the load tests.
+
+As concurrent users increased, throughput remained around 470 requests/sec while latency increased. This behavior is expected for this workload because every bid targets the same product row. PostgreSQL `SELECT FOR UPDATE` serializes competing writes through row-level locking, so the bottleneck is row lock contention rather than data inconsistency.
+
+The system sustained approximately 470 requests/sec while preserving bid consistency under concurrent writes.
+
+As concurrency increased from 100 to 1000 virtual users, latency increased due to PostgreSQL row-level lock contention, while the highest-bid invariant remained valid in all test runs.
 
 ---
 
@@ -214,6 +256,7 @@ GKE is used as the managed Kubernetes target, but the deployment model is expres
 | Backend | Python, Django, Django REST Framework |
 | Frontend | React, TypeScript, Vite, Tailwind CSS |
 | Authentication | JWT, DRF SimpleJWT |
+| Cache | Redis, django-redis |
 | Database | PostgreSQL, Django ORM |
 | API Documentation | OpenAPI 3.0, Swagger UI, drf-spectacular |
 | Runtime | Docker, Docker Compose, Gunicorn, Nginx |

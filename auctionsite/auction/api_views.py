@@ -24,6 +24,7 @@ import secrets
 import requests as http_requests
 import hashlib
 import base64
+import time
 
 class ProductListCreateView(generics.ListCreateAPIView):
     queryset = Product.objects.all()
@@ -61,11 +62,19 @@ class BidCreateView(APIView):
         serializer.is_valid(raise_exception=True)
         bid_amount = serializer.validated_data["bid_amount"]
 
+        start = time.time()
         with transaction.atomic():
             product = get_object_or_404(
                         Product.objects.select_for_update(),
                         id=product_id
                     )
+
+            lock_acquire_time = time.time() - start
+            print(
+                f"lock_acquire_time ={lock_acquire_time:.3f}s "
+                f"Product ID={product_id} "
+                f"bid={bid_amount}"
+            )
             if bid_amount <= product.current_highest_bid:
                 return Response(
                     {"detail": f"Bid must be greater than {product.current_highest_bid}."},
