@@ -214,11 +214,11 @@ Each run used the same product so all bidding requests competed for the same pro
 
 Across all runs, `MAX(bid_amount) = current_highest_bid`. This indicates that the concurrent bidding workflow did not produce a lost update or race-condition mismatch during the load tests.
 
-As concurrent users increased, throughput remained around 470 requests/sec while latency increased. This behavior is expected for this workload because every bid targets the same product row. PostgreSQL `SELECT FOR UPDATE` serializes competing writes through row-level locking, so the bottleneck is row lock contention rather than data inconsistency.
+As concurrent users increased, throughput remained around 470 requests/sec while latency increased. Because all bids targeted the same product row, PostgreSQL row-level locking ensured correctness by serializing competing writes.
 
-The system sustained approximately 470 requests/sec while preserving bid consistency under concurrent writes.
+The system reached a throughput plateau at approximately 470 requests/sec. While row-level locking contributes to write serialization, observed lock acquisition times remained low during testing, suggesting that application-level queueing and worker saturation may also contribute to latency growth under heavy load.
 
-As concurrency increased from 100 to 1000 virtual users, latency increased due to PostgreSQL row-level lock contention, while the highest-bid invariant remained valid in all test runs.
+The system sustained approximately 470 requests/sec while preserving bid consistency under concurrent writes, and the highest-bid invariant remained valid in all test runs.
 
 ---
 
