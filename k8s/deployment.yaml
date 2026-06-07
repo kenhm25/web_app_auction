@@ -4,7 +4,7 @@ metadata:
   name: auction-api
 
 spec:
-  replicas: 1
+  replicas: 2
 
   selector:
     matchLabels:
@@ -26,7 +26,11 @@ spec:
             - -c
             - |
               python manage.py migrate &&
-              gunicorn auctionsite.wsgi:application --bind 0.0.0.0:8000
+              gunicorn auctionsite.wsgi:application \
+                --bind 0.0.0.0:8000 \
+                --workers 5 \
+                --threads 2 \
+                --timeout 60
 
           env:
             - name: REDIS_HOST
@@ -85,6 +89,7 @@ spec:
               path: /healthz/
               port: 8000
             initialDelaySeconds: 20
-            timeoutSeconds: 5
-            periodSeconds: 5 
+            timeoutSeconds: 10
+            failureThreshold: 6
+            periodSeconds: 10
           

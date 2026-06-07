@@ -188,37 +188,156 @@ CI validates backend transactional behavior against PostgreSQL before container 
 
 ## Load Testing and Consistency Validation
 
-Auction bid placement is a write-heavy path where correctness matters more than accepting every request. Under concurrent bidding, the system must preserve the invariant that the product's stored `current_highest_bid` matches the highest accepted bid record.
+Auction bidding is a write-heavy workflow where correctness is more important than maximizing request throughput. Under concurrent bidding, the system must guarantee that the product's stored `current_highest_bid` always matches the highest accepted bid record.
 
-The k6 load test targets the same product with concurrent bidders. This exercises the bid endpoint under contention and validates that `transaction.atomic()`, `select_for_update()`, and PostgreSQL row-level locking continue to serialize writes correctly when multiple requests compete for the same product row.
+To validate correctness under contention, load tests were executed against the production deployment running on Google Kubernetes Engine (GKE). All virtual users targeted the same product, intentionally creating contention on a single PostgreSQL row.
 
-Validation compares the highest persisted bid against the product's denormalized highest-bid field:
+### Concurrency Control
+
+The bidding endpoint uses a database transaction combined with row-level locking:
+
+```python
+with transaction.atomic():
+    product = Product.objects.select_for_update().get(id=product_id)
+
+    if bid_amount <= product.current_highest_bid:
+        return Response(...)
+
+    product.current_highest_bid = bid_amount
+    product.save()
+
+    Bid.objects.create(...)
+```
+
+This ensures competing bids are serialized and prevents lost-update race conditions.
+
+### Consistency Verification
+
+After each load test, consistency was verified by comparing the highest persisted bid against the denormalized product field:
 
 ```sql
 SELECT MAX(bid_amount)
 FROM auction_bid
-WHERE product_id = 1;
+WHERE product_id = ?;
 
 SELECT current_highest_bid
 FROM auction_product
-WHERE id = 1;
+WHERE id = ?;
 ```
 
-Each run used the same product so all bidding requests competed for the same product row.
+Expected invariant:
 
-| Concurrent Users | Requests | Throughput | Avg Latency | P95 Latency | Consistency |
-| --- | ---: | ---: | ---: | ---: | --- |
-| 100 | 13,789 | 456 req/s | 218 ms | 266 ms | Passed |
-| 500 | 14,771 | 473 req/s | 1.03 s | 1.18 s | Passed |
-| 1000 | 15,321 | 473 req/s | 2.03 s | 2.24 s | Passed |
+```text
+MAX(bid_amount) = current_highest_bid
+```
 
-Across all runs, `MAX(bid_amount) = current_highest_bid`. This indicates that the concurrent bidding workflow did not produce a lost update or race-condition mismatch during the load tests.
+The invariant remained valid in all test runs.
 
-As concurrent users increased, throughput remained around 470 requests/sec while latency increased. Because all bids targeted the same product row, PostgreSQL row-level locking ensured correctness by serializing competing writes.
+### Initial Production Load Test
 
-The system reached a throughput plateau at approximately 470 requests/sec. While row-level locking contributes to write serialization, observed lock acquisition times remained low during testing, suggesting that application-level queueing and worker saturation may also contribute to latency growth under heavy load.
+Initial deployment configuration:
 
-The system sustained approximately 470 requests/sec while preserving bid consistency under concurrent writes, and the highest-bid invariant remained valid in all test runs.
+```text
+Replicas: 1
+Gunicorn Workers: 1 (default)
+```
+
+Results:
+
+| Concurrent Users | Result                                          |
+| ---------------- | ----------------------------------------------- |
+| 200 VU           | Passed                                          |
+| 400 VU           | Failed with large numbers of HTTP 502 responses |
+
+Investigation revealed that the application logic remained correct, but Kubernetes readiness probes began failing under load:
+
+```text
+Readiness probe failed:
+Get "http://<pod-ip>:8000/healthz/":
+context deadline exceeded
+```
+
+During testing, the pod repeatedly transitioned:
+
+```text
+Ready (1/1)
+↓
+Not Ready (0/1)
+↓
+Ready (1/1)
+```
+
+This caused GKE Load Balancer to temporarily remove the backend from service, resulting in HTTP 502 responses.
+
+### Mitigation
+
+The deployment was updated to improve capacity and resilience:
+
+```yaml
+replicas: 2
+```
+
+Gunicorn configuration:
+
+```bash
+gunicorn auctionsite.wsgi:application \
+  --bind 0.0.0.0:8000 \
+  --workers 5 \
+  --threads 2 \
+  --timeout 60
+```
+
+Readiness probe thresholds were also relaxed to avoid transient failures during load spikes.
+
+### Post-Fix Results
+
+| Concurrent Users | Result                        |
+| ---------------- | ----------------------------- |
+| 400 VU           | Passed                        |
+| 1000 VU          | Readiness failures reappeared |
+
+At 400 concurrent users:
+
+| Metric           | Value       |
+| ---------------- | ----------- |
+| Success Criteria | 100% Passed |
+| Average Latency  | 6.29 s      |
+| P95 Latency      | 11.38 s     |
+| Data Consistency | Passed      |
+
+### Lock Contention Analysis
+
+Additional instrumentation was added around the PostgreSQL row lock:
+
+```python
+start = time.time()
+
+product = Product.objects.select_for_update().get(id=product_id)
+
+lock_wait = time.time() - start
+```
+
+Observed lock acquisition times:
+
+```text
+0.041s
+0.078s
+0.122s
+0.200s
+0.341s
+```
+
+This indicates increasing PostgreSQL row-level lock contention when hundreds of users attempt to update the same product simultaneously.
+
+### Key Findings
+
+* Concurrent bidding correctness was preserved in all test runs.
+* PostgreSQL row-level locking successfully prevented lost updates.
+* The first production bottleneck was not the database but Kubernetes readiness probe failures.
+* Increasing pod replicas and Gunicorn worker capacity eliminated 502 errors at 400 concurrent users.
+* Under extreme contention on a single product, lock wait times increased noticeably, demonstrating the trade-off between strict consistency and throughput.
+* The system maintained bid correctness even when latency increased significantly under heavy write contention.
+
 
 ---
 

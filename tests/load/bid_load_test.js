@@ -25,12 +25,16 @@ export default function () {
     };
 
     const res = http.post(
-        "http://localhost:8000/api/products/1/bids/",
+        "https://ken-auction.duckdns.org/api/products/9/bids/",
         payload,
         params
     );
 
-    
+    if (res.status !== 201 && res.status !== 400) {
+        console.log(
+            `status=${res.status} body=${res.body}`
+        );
+    }
     check(res, {
         "201 or 400": (r) =>
             r.status === 201 || r.status === 400,
