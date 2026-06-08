@@ -2,7 +2,7 @@ import http from "k6/http";
 import { check } from "k6";
 
 export const options = {
-    vus: 1000,
+    vus: 600,
     duration: '30s',
 };
 
@@ -25,7 +25,7 @@ export default function () {
     };
 
     const res = http.post(
-        "https://ken-auction.duckdns.org/api/products/9/bids/",
+        "https://ken-auction.duckdns.org/api/products/12/bids/",
         payload,
         params
     );

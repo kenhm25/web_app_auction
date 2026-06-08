@@ -305,6 +305,8 @@ At 400 concurrent users:
 | P95 Latency      | 11.38 s     |
 | Data Consistency | Passed      |
 
+> These results intentionally represent a worst-case scenario in which all virtual users bid on the same product and compete for the same PostgreSQL row lock.
+
 ### Lock Contention Analysis
 
 Additional instrumentation was added around the PostgreSQL row lock:
